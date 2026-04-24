@@ -1,7 +1,38 @@
-global:
-  scrape_interval: 5s
+stages:
+  # STAGE 1: THE DATA BRIDGE
+  # This downloads the Gold Snapshot from S3 to datas/raw/
+  data_ingestion:
+    cmd: python src/components/data/data_ingestion.py
+    deps:
+      - src/components/data/data_ingestion.py
+    outs:
+      - datas/raw/train_snapshot.jsonl
+    # SENIOR MOVE: We set always_changed because S3 data grows 
+    # even if the code doesn't change.
+    always_changed: true 
 
-scrape_configs:
-  - job_name: 'fraud_engine'
-    static_configs:
-      - targets: ['host.docker.internal:8000']
+  # STAGE 2: QUALITY GOVERNANCE
+  # Validates the snapshot against our config/schema.yaml
+  data_validation:
+    cmd: python src/components/data/data_validation.py
+    deps:
+      - datas/raw/train_snapshot.jsonl
+      - src/components/data/data_validation.py
+      - src/components/data/data_transformation.py # Math Dependency
+      - config/schema.yaml
+    outs:
+      - reports/data_validation/status.yaml
+
+  # STAGE 3: BASELINE PERFORMANCE
+  # Runs the Heuristic rules on the snapshot to get current precision/recall
+  heuristic_analysis:
+    cmd: python src/pipeline/heuristic_pipeline.py --strategy any_fires --data datas/raw/train_snapshot.jsonl
+    deps:
+      - datas/raw/train_snapshot.jsonl
+      - reports/data_validation/status.yaml
+      - src/pipeline/heuristic_pipeline.py
+      - src/components/data/data_transformation.py # Math Dependency
+      - config/heuristic_rules/
+    metrics:
+      - reports/metrics.json:
+          cache: false
