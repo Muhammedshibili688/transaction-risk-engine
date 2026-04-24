@@ -5,12 +5,24 @@ from src.constants import PROJECT_ROOT
 
 @dataclass
 class DataIngestionConfig:
-    """Config for syncing local stream snapshots to the S3 Data Lake."""
-    data_dir: Path = PROJECT_ROOT / "datas"
-    local_raw_path: Path = data_dir / "fresh" / "transactions.jsonl"
+    project_root: Path = PROJECT_ROOT
+    data_dir: Path = project_root / "datas"
+    
+    # 1. Simulator Landing Zone (The RAW-RAW data)
+    local_fresh_path: Path = data_dir / "fresh" / "transactions.jsonl"
+    
+    # 2. Consumer Landing Zone (The ENRICHED data)
     local_processed_path: Path = data_dir / "processed" / "features.jsonl"
+    
+    # 3. Training/ML Zone (Data pulled from S3 for validation/training)
     training_file_path: Path = data_dir / "raw" / "train_snapshot.jsonl"
+    
+    # 4. S3 Keys
+    s3_raw_backup_key: str = "data/fresh/transactions.jsonl"
     s3_processed_key: str = "data/processed/features.jsonl"
+
+    # 5. Training Ingestion (Destination for S3 pull)
+    ingested_train_dir: Path = data_dir / "raw"
 
 @dataclass
 class DataValidationConfig:
