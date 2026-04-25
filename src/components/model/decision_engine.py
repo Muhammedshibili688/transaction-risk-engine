@@ -10,3 +10,4 @@ class DecisionEngine:
         elif score >= self.config.medium_risk_threshold:
             return "CHALLENGE_OTP"
         return "ALLOW"
+    

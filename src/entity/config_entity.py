@@ -18,8 +18,8 @@ class DataIngestionConfig:
     training_file_path: Path = data_dir / "raw" / "train_snapshot.jsonl"
     
     # 4. S3 Keys
-    s3_raw_backup_key: str = "data/fresh/transactions.jsonl"
-    s3_processed_key: str = "data/processed/features.jsonl"
+    s3_raw_backup_key: str = "datas/fresh/transactions.jsonl"
+    s3_processed_key: str = "datas/processed/features.jsonl"
 
     # 5. Training Ingestion (Destination for S3 pull)
     ingested_train_dir: Path = data_dir / "raw"

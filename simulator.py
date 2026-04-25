@@ -1,3 +1,4 @@
+import os
 import json
 import random
 import uuid
@@ -7,10 +8,12 @@ from datetime import datetime, timedelta
 
 # SHARED IMPORTS - This makes it production-grade
 from src.configuration.redis_connection import RedisClient
-from src.constants import COUNTRY_PROFILES, MERCHANTS, STREAM_NAME
+from src.constants import COUNTRY_PROFILES, MERCHANTS
+from src.entity.config_entity import DataIngestionConfig
 from src.logger import logging
 from src.exception import FraudException
 
+STREAM_NAME = os.getenv("STREAM_NAME", "transactions_stream")
 
 class TransactionSimulator:
     def __init__(self):
@@ -20,17 +23,18 @@ class TransactionSimulator:
             self.config = DataIngestionConfig()
             
             # 2. Ensure the directory exists (Prevent crash)
-            self.config.local_raw_path.parent.mkdir(parents=True, exist_ok=True)
+            self.config.local_fresh_path.parent.mkdir(parents=True, exist_ok=True)
             
             self.users = [User(f"USR_{i:04d}") for i in range(2500)]
-            logging.info(f"Simulator ready. Writing to: {self.config.local_raw_path}")
+
+            logging.info(f"Simulator ready. Writing to: {self.config.local_fresh_path}")
         except Exception as e:
             raise FraudException(e, sys)
 
     def _save_local(self, tx):
         """Helper to append transaction to local JSONL landing zone."""
         try:
-            with open(self.config.local_raw_path, "a") as f:
+            with open(self.config.local_fresh_path, "a") as f:
                 f.write(json.dumps(tx) + "\n")
         except Exception as e:
             logging.error(f"Local write failed for TX {tx['tx_id']}")

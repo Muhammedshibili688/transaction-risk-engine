@@ -4,7 +4,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
-from constants import PROJECT_ROOT
+from src.constants import PROJECT_ROOT
 
 # 1. Project-relative path handling (bulletproof)
 LOG_DIR = "logs"

@@ -6,6 +6,8 @@ from pathlib import Path
 PROJECT_ROOT = Path(os.getcwd())
 print(f"Project Root: {PROJECT_ROOT}")
 
+STREAM_NAME = "transactions"
+
 MIN_RECORDS_FOR_TRAINING = 200000  # 2 Lakhs
 MAX_RECORDS_TO_KEEP = 400000      # 4 Lakhs
 
