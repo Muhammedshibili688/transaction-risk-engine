@@ -1,9 +1,11 @@
 experiment_name: "Heuristic_Discovery"
 rule_version: "v1.0"
+
 thresholds:
   geo_speed_limit: 900
   amount_ratio_limit: 5.0
   switch_count_limit: 2
+  
 weights:
   impossible_travel: 60
   new_device: 20
