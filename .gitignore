@@ -6,6 +6,20 @@ __pycache__/
 # C extensions
 *.so
 
+.env
+__pycache__/
+*.py[cod]
+*.log
+# Ignore DVC local remotes and cache
+.dvc/cache
+.dvc/tmp
+.dvc/plots
+
+datas/
+models/
+reports/
+venv/
+
 # Distribution / packaging
 .Python
 build/

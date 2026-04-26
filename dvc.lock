@@ -1,0 +1,62 @@
+schema: '2.0'
+stages:
+  data_ingestion:
+    cmd: python src/components/data/data_ingestion.py
+    deps:
+    - path: src/components/data/data_ingestion.py
+      hash: md5
+      md5: 7a8608879fb6acb1fc65bcc141ba55b1
+      size: 6492
+    outs:
+    - path: datas/raw/train_snapshot.jsonl
+      hash: md5
+      md5: 209f7ebdacd1736b379312aebdcc2a6d
+      size: 1081146
+  data_validation:
+    cmd: python src/components/data/data_validation.py
+    deps:
+    - path: config/schema.yaml
+      hash: md5
+      md5: d4088a5d709775ff7c5efdb6dee5fe06
+      size: 659
+    - path: datas/raw/train_snapshot.jsonl
+      hash: md5
+      md5: 209f7ebdacd1736b379312aebdcc2a6d
+      size: 1081146
+    - path: src/components/data/data_transformation.py
+      hash: md5
+      md5: f1aa089a9c3bc51c241d31dd6ed5794b
+      size: 3398
+    - path: src/components/data/data_validation.py
+      hash: md5
+      md5: 9cd976b9b6a82f59e7e437eba5eb43a6
+      size: 3188
+    outs:
+    - path: reports/data_validation/status.yaml
+      hash: md5
+      md5: 569ce878d32df765213e6e87c4e06d9f
+      size: 127
+  heuristic_analysis:
+    cmd: python src/pipeline/experiment_pipeline.py
+    deps:
+    - path: config/rules/baseline.yaml
+      hash: md5
+      md5: 3cd5a0227a874a169c44ae9f9673ac07
+      size: 228
+    - path: datas/raw/train_snapshot.jsonl
+      hash: md5
+      md5: 209f7ebdacd1736b379312aebdcc2a6d
+      size: 1081146
+    - path: src/components/model/scorer.py
+      hash: md5
+      md5: b5992eb80794a723eaeda7620b38ec47
+      size: 840
+    - path: src/pipeline/experiment_pipeline.py
+      hash: md5
+      md5: d7cdc7bccbdd07887ba4903007df9152
+      size: 3153
+    outs:
+    - path: reports/metrics.json
+      hash: md5
+      md5: 69e9ac51835d5f1f6073a7692e2e0303
+      size: 75

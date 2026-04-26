@@ -26,13 +26,12 @@ stages:
   # STAGE 3: BASELINE PERFORMANCE
   # Runs the Heuristic rules on the snapshot to get current precision/recall
   heuristic_analysis:
-    cmd: python src/pipeline/heuristic_pipeline.py --strategy any_fires --data datas/raw/train_snapshot.jsonl
+    cmd: python src/pipeline/experiment_pipeline.py
     deps:
       - datas/raw/train_snapshot.jsonl
-      - reports/data_validation/status.yaml
-      - src/pipeline/heuristic_pipeline.py
-      - src/components/data/data_transformation.py # Math Dependency
-      - config/heuristic_rules/
-    metrics:
+      - config/rules/baseline.yaml
+      - src/pipeline/experiment_pipeline.py
+      - src/components/model/scorer.py
+    outs:
       - reports/metrics.json:
           cache: false
