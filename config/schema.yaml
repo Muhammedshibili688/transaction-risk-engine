@@ -3,18 +3,14 @@ columns:
   tx_id: object
   timestamp: object
   user_id: object
-  amount: float64
   amount_usd: float64
-  currency: object
   country: object
   lat: float64
   lon: float64
   ip: object
   device_id: object
-  merchant_category: object
-  card_type: object
   is_fraud: int64
-  pattern: object
+  fraud_type: object
   amount_ratio: float64
   geo_distance: float64
   geo_speed: float64
@@ -26,5 +22,7 @@ columns:
   country_change: int64
   country_avg_amount: float64
   user_country_ratio: float64
+  risk_score: int64
+  verdict: object
 
 target_column: is_fraud

@@ -36,11 +36,11 @@ list_of_files = [
     "consumer.py",               # Coordinator
     "requirements.txt",
     "Dockerfile",
-    "prometheus.yml",            # Monitoring Config
+    "prometheus.yaml",            # Monitoring Config
     "config/schema.yaml",
     "config/rules.yaml",
-    "dvc.yaml",
-    
+    "dvc.yaml"
+
 ]
 
 for filepath in list_of_files:

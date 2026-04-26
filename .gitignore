@@ -15,7 +15,14 @@ __pycache__/
 .dvc/tmp
 .dvc/plots
 
-datas/
+datas/*
+!datas/.gitkeep
+!datas/scoring/.gitkeep
+!datas/processed/.gitkeep
+!datas/raw/.gitkeep
+!datas/fresh/.gitkeep
+!datas/interim/.gitkeep
+
 models/
 reports/
 venv/
@@ -219,3 +226,4 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+/models

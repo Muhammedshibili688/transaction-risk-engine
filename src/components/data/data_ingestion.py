@@ -8,7 +8,9 @@ from src.logger import logging
 from src.entity.config_entity import DataIngestionConfig
 from src.entity.artifact_entity import DataIngestionArtifact
 from src.configuration.aws_connection import S3Connection
-from src.constants import TRAINING_BUCKET_NAME, MAX_RECORDS_TO_KEEP
+from src.constants import MAX_RECORDS_TO_KEEP
+
+TRAINING_BUCKET_NAME = os.getenv("TRAINING_BUCKET_NAME")
 
 class DataIngestion:
     def __init__(self, config: DataIngestionConfig):

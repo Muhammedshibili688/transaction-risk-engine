@@ -61,7 +61,7 @@ def run_scoring(input_path: str):
     scorer = FraudScorer(rule_config)
     decider = DecisionEngine(DecisionConfig())
 
-    base_dir = "data/scoring"
+    base_dir = "datas/scoring"
     os.makedirs(base_dir, exist_ok=True)
 
     experiment, version = extract_metadata(rule_config)
