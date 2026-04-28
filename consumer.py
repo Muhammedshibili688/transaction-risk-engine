@@ -142,7 +142,7 @@ def consume():
     try:
         redis_client = RedisClient().client
         config = DataIngestionConfig()
-        decision_config = DecisionConfig()
+        decision_config = DecisionConfig.load_from_yaml()
         
         rules_path = PROJECT_ROOT / "config" / "rules" / "baseline.yaml"
         with open(rules_path, "r") as f:

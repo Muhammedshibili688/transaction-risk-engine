@@ -1,17 +1,5 @@
 schema: '2.0'
 stages:
-  data_ingestion:
-    cmd: python src/components/data/data_ingestion.py
-    deps:
-    - path: src/components/data/data_ingestion.py
-      hash: md5
-      md5: 7a8608879fb6acb1fc65bcc141ba55b1
-      size: 6492
-    outs:
-    - path: datas/raw/train_snapshot.jsonl
-      hash: md5
-      md5: 209f7ebdacd1736b379312aebdcc2a6d
-      size: 1081146
   data_validation:
     cmd: python src/components/data/data_validation.py
     deps:

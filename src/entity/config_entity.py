@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+import yaml
 import os
 from src.constants import PROJECT_ROOT
 
@@ -57,11 +58,17 @@ class ModelTrainerConfig:
     expected_accuracy: float = 0.8  # Threshold to push to production
     model_config_path: Path = PROJECT_ROOT / "config" / "model.yaml"
 
+
 @dataclass
 class DecisionConfig:
-    """THE DECISION ENGINE CONFIG (Real-time Verdicts)."""
-    # Thresholds for the 0-100 Risk Score
-    high_risk_threshold: int = 80    # Score >= 80 -> BLOCK
-    medium_risk_threshold: int = 50  # Score >= 50 -> CHALLENGE (OTP)
-    # Output Stream for bank notifications
+    high_risk_threshold: int = 80
+    medium_risk_threshold: int = 50
     verdict_stream_name: str = "fraud_verdicts"
+
+    @classmethod
+    def load_from_yaml(cls, path="config/decision.yaml"):
+        if Path(path).exists():
+            with open(path, "r") as f:
+                data = yaml.safe_load(f)
+            return cls(**data)
+        return cls()
