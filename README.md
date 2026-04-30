@@ -251,76 +251,44 @@ The same pipeline. Two very different decisions.
 That is the scoring engine working as designed.
 
 ---
-# Project Structure
----
 
-Directory structure:
-└── muhammedshibili688-transaction-risk-engine/
-    ├── README.Docker.md
-    ├── README.md
-    ├── app.py
-    ├── compose.yaml
-    ├── consumer.py
-    ├── datas.dvc
-    ├── Dockerfile
-    ├── dvc.lock
-    ├── dvc.yaml
-    ├── evaluation_runner.py
-    ├── LICENSE
-    ├── models.dvc
-    ├── prometheus.yaml
-    ├── requirements.txt
-    ├── scoring_runner.py
-    ├── setup.py
-    ├── simulator.py
-    ├── template.py
-    ├── .dockerignore
-    ├── .dvcignore
-    ├── config/
-    │   ├── decision.yaml
-    │   ├── rules.yaml
-    │   ├── schema.yaml
-    │   └── rules/
-    │       └── baseline.yaml
-    ├── src/
-    │   ├── __init__.py
-    │   ├── components/
-    │   │   ├── data/
-    │   │   │   ├── __init__.py
-    │   │   │   ├── data_ingestion.py
-    │   │   │   ├── data_transformation.py
-    │   │   │   └── data_validation.py
-    │   │   └── model/
-    │   │       ├── __init__.py
-    │   │       ├── decision_engine.py
-    │   │       ├── model_evaluation.py
-    │   │       ├── model_trainer.py
-    │   │       └── scorer.py
-    │   ├── configuration/
-    │   │   ├── __init__.py
-    │   │   ├── aws_connection.py
-    │   │   └── redis_connection.py
-    │   ├── constants/
-    │   │   └── __init__.py
-    │   ├── entity/
-    │   │   ├── artifact_entity.py
-    │   │   └── config_entity.py
-    │   ├── exception/
-    │   │   └── __init__.py
-    │   ├── logger/
-    │   │   └── __init__.py
-    │   ├── pipeline/
-    │   │   ├── evaluation_pipeline.py
-    │   │   ├── experiment_pipeline.py
-    │   │   ├── prediction_pipeline.py
-    │   │   ├── scoring_pipeline.py
-    │   │   └── training_pipeline.py
-    │   └── utils/
-    │       ├── __init__.py
-    │       └── main_utils.py
-    └── .dvc/
-        └── config
+## Project Structure
 
+```text
+transaction-risk-engine/
+
+├── config/                     # All runtime configuration
+│   ├── decision.yaml           # Decision thresholds (ALLOW / BLOCK / REVIEW)
+│   ├── rules.yaml              # Active rule configuration
+│   └── rules/
+│       └── baseline.yaml       # Heuristic rule definitions
+
+├── datas/                      # DVC-tracked data
+│   ├── raw/                   # Raw ingestion snapshots
+│   ├── processed/             # Feature-engineered data
+│   └── scoring/               # Risk scores + verdict outputs
+
+├── src/
+│   ├── components/
+│   │   ├── data/              # Data ingestion, validation, transformation
+│   │   └── model/             # Scorer, decision engine, evaluation
+│   │
+│   ├── pipeline/              # End-to-end workflows
+│   │   ├── experiment_pipeline.py
+│   │   ├── scoring_pipeline.py
+│   │   ├── evaluation_pipeline.py
+│   │   └── training_pipeline.py
+│   │
+│   ├── configuration/         # External system connections (Redis, AWS)
+│   ├── entity/                # Config + artifact schemas
+│   └── utils/                 # Shared utilities
+
+├── reports/                   # Evaluation outputs + metrics
+├── dvc.yaml                   # Pipeline definition
+├── app.py                     # FastAPI serving layer
+├── consumer.py                # Real-time streaming consumer
+└── simulator.py               # Transaction generator
+```
 
 # MLflow Experiment Tracking
 
