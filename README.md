@@ -43,7 +43,8 @@ This system focuses on **end-to-end decision-making under real-world constraints
 
 ## Architecture
 
-```
+```mermaid
+flowchart LR
 
 %% ------------------ INGESTION ------------------
 subgraph INGESTION["Event Ingestion (Streaming)"]
@@ -62,17 +63,19 @@ subgraph REALTIME["Real-Time Risk Engine (Latency < 10ms)"]
     H[Decision Engine\nApprove | Block | Review]
 
     C --> D
-    D --> E
-    E --> F
-    F --> G
+    D <--> E
+    D --> F
+    F --> H
     G --> H
 end
 
-%% ------------------ OUTPUT ------------------
+%% ------------------ SERVING ------------------
 subgraph OUTPUT["Serving Layer"]
     I[FastAPI / Decision API]
     J[Verdict Stream / Response]
-    I --> J
+
+    I --> C
+    H --> J
 end
 
 %% ------------------ OBSERVABILITY ------------------
@@ -88,25 +91,31 @@ subgraph OFFLINE["Offline Training Pipeline"]
     N[Data Validation]
     O[Feature Pipeline]
     P[Model Training]
-    Q[MLflow Tracking]
-    R[Threshold Optimization]
+    Q[Evaluation Loop]
+    R[MLflow Tracking]
+    T[Threshold Optimization]
     S[decision.yaml]
 
-    M --> N --> O --> P --> Q --> R --> S
+    M --> N --> O --> P --> Q --> P
+    P --> R --> T --> S
 end
 
 %% ------------------ CONNECTIONS ------------------
 
 B --> C
-H --> I
 
-%% Offline → Real-time deployment link
+%% API triggers processing
+I --> C
+
+%% Output
+H --> J
+
+%% Deployment
 S -. Model + Threshold Deployment .-> H
 
-%% Observability hooks
+%% Observability
 C -. Metrics .-> K
 H -. Metrics .-> K
-
 ```
 ---
 
