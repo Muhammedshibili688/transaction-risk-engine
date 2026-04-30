@@ -60,7 +60,7 @@ subgraph REALTIME["Real-Time Risk Engine (Latency < 10ms)"]
     E[Redis State Store]
     F[ML Model]
     G[Rule Engine]
-    H[Decision Engine<br>Approve | Block | Review]
+    H[Decision Engine<br>Approve / Block / Review]
 
     C --> D
     D <--> E
