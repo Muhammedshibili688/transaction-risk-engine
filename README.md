@@ -43,51 +43,69 @@ This system focuses on **end-to-end decision-making under real-world constraints
 
 ## Architecture
 
-```mermaid
-graph TD
+```
 
-subgraph Event_Generation
-    A[Transaction Simulator] -->|Raw JSON| B((Redis Stream))
+%% ------------------ INGESTION ------------------
+subgraph INGESTION["Event Ingestion (Streaming)"]
+    A[Transaction Simulator / API]
+    B[Redis Stream]
+    A --> B
 end
 
-subgraph Real_Time_Risk_Engine
-    B -->|Stream Read| C[Consumer Worker]
+%% ------------------ REAL-TIME ENGINE ------------------
+subgraph REALTIME["Real-Time Risk Engine (Latency < 10ms)"]
+    C[Consumer Worker]
+    D[Feature Engineering\n(Velocity / Device / Geo)]
+    E[Redis State Store]
+    F[ML Model]
+    G[Rule Engine]
+    H[Decision Engine\nApprove | Block | Review]
 
-    C --> D[Feature Engineer]
-    D --> E[Heuristic Scorer]
-    E --> F[Decision Engine]
-
-    F -->|ALLOW / BLOCK| G((Verdict Stream))
-
-    H[(Redis State Store)] <--> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
 end
 
-subgraph Serving_Layer
-    I[FastAPI API] -->|Real-time Request| F
+%% ------------------ OUTPUT ------------------
+subgraph OUTPUT["Serving Layer"]
+    I[FastAPI / Decision API]
+    J[Verdict Stream / Response]
+    I --> J
 end
 
-subgraph Offline_Pipeline
-    C -->|Raw + Features| J[S3 Data Lake]
-
-    J --> K["Data Ingestion (DVC)"]
-    K --> L[Data Validation]
-    L --> M[Feature Dataset]
-
-    M --> N[Scoring Pipeline]
-    N --> O[Evaluation Pipeline]
-
-    O --> P[MLflow Dagshub]
-
-    P --> Q[Threshold Optimization]
-    Q --> R[decision.yaml]
-
-    R --> F
+%% ------------------ OBSERVABILITY ------------------
+subgraph OBS["Observability"]
+    K[Prometheus Metrics]
+    L[Grafana Dashboard]
+    K --> L
 end
 
-subgraph Observability
-    C --> S[Prometheus Metrics]
-    S --> T[Grafana Dashboard]
+%% ------------------ OFFLINE PIPELINE ------------------
+subgraph OFFLINE["Offline Training Pipeline"]
+    M[S3 Data Lake]
+    N[Data Validation]
+    O[Feature Pipeline]
+    P[Model Training]
+    Q[MLflow Tracking]
+    R[Threshold Optimization]
+    S[decision.yaml]
+
+    M --> N --> O --> P --> Q --> R --> S
 end
+
+%% ------------------ CONNECTIONS ------------------
+
+B --> C
+H --> I
+
+%% Offline → Real-time deployment link
+S -. Model + Threshold Deployment .-> H
+
+%% Observability hooks
+C -. Metrics .-> K
+H -. Metrics .-> K
 
 ```
 ---
