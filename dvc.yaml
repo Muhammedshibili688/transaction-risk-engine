@@ -47,3 +47,11 @@ stages:
       - datas/scoring
     outs:
       - reports/model_evaluation
+
+  threshold_optimization:
+    cmd: python threshold_runner.py
+    deps:
+      - datas/processed/features.jsonl
+      - datas/scoring/latest.jsonl
+    outs:
+      - reports/threshold_optimization/best_threshold.yaml

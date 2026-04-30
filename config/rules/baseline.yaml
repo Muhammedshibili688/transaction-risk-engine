@@ -2,11 +2,11 @@ experiment_name: "Heuristic_Rule"
 rule_version: "v1.0"
 
 thresholds:
-  geo_speed_limit: 850
-  amount_ratio_limit: 4.0
-  switch_count_limit: 2
+  geo_speed_limit: 1050
+  amount_ratio_limit: 3.0
+  switch_count_limit: 3
   
 weights:
-  impossible_travel: 60
+  impossible_travel: 70
   new_device: 20
   high_risk_merchant: 20

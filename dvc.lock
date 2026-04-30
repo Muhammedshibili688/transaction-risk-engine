@@ -25,8 +25,8 @@ stages:
     deps:
     - path: config/rules/baseline.yaml
       hash: md5
-      md5: 7b77e50ba915aadf45acb6ff70ab1002
-      size: 229
+      md5: 422a19a13a740d59500f166b625df477
+      size: 219
     - path: datas/raw/train_snapshot.jsonl
       hash: md5
       md5: 0d81d0e5466b8e4ae6989cc06b5c84aa
@@ -38,7 +38,7 @@ stages:
     outs:
     - path: reports/metrics.json
       hash: md5
-      md5: 3aab6cf0cf96781f7b466320fb64578c
+      md5: 4ccd694d81eaabc0163e6bde0bd5a3ef
       size: 105
   ingestion:
     cmd: python src/components/data/data_ingestion.py
@@ -66,8 +66,8 @@ stages:
     deps:
     - path: config/rules/baseline.yaml
       hash: md5
-      md5: 7b77e50ba915aadf45acb6ff70ab1002
-      size: 229
+      md5: 422a19a13a740d59500f166b625df477
+      size: 219
     - path: datas/processed/features.jsonl
       hash: md5
       md5: 0d81d0e5466b8e4ae6989cc06b5c84aa
@@ -75,8 +75,8 @@ stages:
     outs:
     - path: datas/scoring
       hash: md5
-      md5: f2573b774854acec4b15d7d167cedd96.dir
-      size: 3621781
+      md5: 02647d75fc619425c7eb6fc1f69333ea.dir
+      size: 3619892
       nfiles: 1
   evaluation:
     cmd: python evaluation_runner.py
@@ -87,12 +87,28 @@ stages:
       size: 24722774
     - path: datas/scoring
       hash: md5
-      md5: f2573b774854acec4b15d7d167cedd96.dir
-      size: 3621781
+      md5: 02647d75fc619425c7eb6fc1f69333ea.dir
+      size: 3619892
       nfiles: 1
     outs:
     - path: reports/model_evaluation
       hash: md5
-      md5: bc329b8b7022dfad37a9594a2e4ef6c8.dir
-      size: 259
+      md5: f29bc57bfb13479273e86be68f655df1.dir
+      size: 368
       nfiles: 1
+  threshold_optimization:
+    cmd: python threshold_runner.py
+    deps:
+    - path: datas/processed/features.jsonl
+      hash: md5
+      md5: 0d81d0e5466b8e4ae6989cc06b5c84aa
+      size: 24722774
+    - path: datas/scoring/latest.jsonl
+      hash: md5
+      md5: e8ec047128638e8c00dfa2de2a9ac5b1
+      size: 3619892
+    outs:
+    - path: reports/threshold_optimization/best_threshold.yaml
+      hash: md5
+      md5: 3d86e297232bbef8e314d6505a239fc8
+      size: 52
