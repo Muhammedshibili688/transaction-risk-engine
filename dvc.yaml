@@ -1,34 +1,42 @@
 stages:
-  # STAGE 1: THE DATA BRIDGE
-  # This downloads the Gold Snapshot from S3 to datas/raw/
+
+  ingestion:
+    cmd: python src/components/data/data_ingestion.py
+    outs:
+      - datas/raw
+
   data_validation:
     cmd: python src/components/data/data_validation.py
     deps:
-    - datas/raw/train_snapshot.jsonl
-    - src/components/data/data_validation.py
-    - src/components/data/data_transformation.py   # Math Dependency
-    - config/schema.yaml
+      - datas/raw/train_snapshot.jsonl
+      - src/components/data/data_validation.py
+      - config/schema.yaml
     outs:
-    - reports/data_validation/status.yaml
+      - reports/data_validation/status.yaml
 
-  # STAGE 3: BASELINE PERFORMANCE
-  # Runs the Heuristic rules on the snapshot to get current precision/recall
+  #  ADD THIS (MISSING LINK)
+  feature_engineering:
+    cmd: python -c "import shutil; shutil.copy('datas/raw/train_snapshot.jsonl', 'datas/processed/features.jsonl')"
+    deps:
+      - datas/raw/train_snapshot.jsonl
+    outs:
+      - datas/processed/features.jsonl
+
   heuristic_analysis:
     cmd: python src/pipeline/experiment_pipeline.py
     deps:
-    - datas/raw/train_snapshot.jsonl
-    - config/rules/baseline.yaml
-    - src/pipeline/experiment_pipeline.py
-    - src/components/model/scorer.py
+      - datas/raw/train_snapshot.jsonl
+      - config/rules/baseline.yaml
+      - src/components/model/scorer.py
     outs:
-    - reports/metrics.json:
-        cache: false
+      - reports/metrics.json:
+          cache: false
 
   scoring:
     cmd: python scoring_runner.py
     deps:
       - datas/processed/features.jsonl
-      - config/rules.yaml
+      - config/rules/baseline.yaml
     outs:
       - datas/scoring
 
