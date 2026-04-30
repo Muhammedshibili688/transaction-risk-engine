@@ -56,11 +56,11 @@ end
 %% ------------------ REAL-TIME ENGINE ------------------
 subgraph REALTIME["Real-Time Risk Engine (Latency < 10ms)"]
     C[Consumer Worker]
-    D[Feature Engineering\n(Velocity / Device / Geo)]
+    D[Feature Engineering<br>Velocity / Device / Geo]
     E[Redis State Store]
     F[ML Model]
     G[Rule Engine]
-    H[Decision Engine\nApprove | Block | Review]
+    H[Decision Engine<br>Approve | Block | Review]
 
     C --> D
     D <--> E
@@ -104,16 +104,11 @@ end
 
 B --> C
 
-%% API triggers processing
 I --> C
-
-%% Output
 H --> J
 
-%% Deployment
 S -. Model + Threshold Deployment .-> H
 
-%% Observability
 C -. Metrics .-> K
 H -. Metrics .-> K
 ```
