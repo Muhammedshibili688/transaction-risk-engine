@@ -69,10 +69,12 @@ def run_scoring(input_path: str):
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    output_path = os.path.join(
-        base_dir,
-        f"{experiment}_{version}_run{run_number}_{timestamp}.jsonl"
-    )
+    # output_path = os.path.join(
+    #     base_dir,
+    #     f"{experiment}_{version}_run{run_number}_{timestamp}.jsonl"
+    # )
+
+    output_path = "datas/scoring/latest.jsonl"
 
     processed = 0
 

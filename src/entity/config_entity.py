@@ -33,13 +33,6 @@ class DataValidationConfig:
     report_file_name: str = "status.yaml"
 
 @dataclass
-class DataValidationConfig:
-    schema_file_path: Path = PROJECT_ROOT / "config" / "schema.yaml"
-    report_dir: Path = PROJECT_ROOT / "reports" / "data_validation"
-    # Ensure this matches the 'outs' in dvc.yaml
-    report_file_name: str = "status.yaml"
-
-@dataclass
 class DataTransformationConfig:
     """Config for feature engineering, scaling, and SMOTE logic."""
     transformed_dir: Path = PROJECT_ROOT / "datas" / "transformed"
@@ -72,3 +65,4 @@ class DecisionConfig:
                 data = yaml.safe_load(f)
             return cls(**data)
         return cls()
+

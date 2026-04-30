@@ -24,14 +24,17 @@ class FraudModelEvaluator:
 
                 if tx_id in features:
                     results.append({
-                        "y_true": features[tx_id],
+                        "y_true": features[tx_id]["is_fraud"],
                         "y_pred": 1 if tx["verdict"] == "BLOCK" else 0,
                         "amount": features[tx_id]["amount"]
                     })
 
+        print(f"Loaded features: {len(features)}")
+        print(f"Matched results: {len(results)}")
+
         return results
 
-    def compute_metrics(self, data):
+    def compute_metrics(self, data, cost_per_review=2.0):
         TP = FP = TN = FN = 0
         total_fraud_amount = 0
         missed_fraud_amount = 0
@@ -41,7 +44,7 @@ class FraudModelEvaluator:
             y_pred = row["y_pred"]
             amount = row["amount"]
 
-            if t_true == 1:
+            if y_true == 1:
                 total_fraud_amount += amount
 
             if y_true == 1 and y_pred == 1:
@@ -55,6 +58,11 @@ class FraudModelEvaluator:
                 missed_fraud_amount += amount
 
         TOTAL = (TP + FP +TN + FN)
+
+        if TOTAL == 0:
+            return {
+                "error": "No matching data between features and scoring"
+            }
 
         precision = TP / (TP + FP) if (TP + FP) else 0
         recall = TP / (TP + FN) if (TP + FN) else 0
