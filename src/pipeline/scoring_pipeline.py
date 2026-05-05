@@ -2,6 +2,7 @@ import json
 import os
 from datetime import datetime
 import yaml
+import pandas as pd
 
 from src.components.model.scorer import FraudScorer
 from src.components.model.decision_engine import DecisionEngine
@@ -67,20 +68,15 @@ def run_scoring(input_path: str):
     experiment, version = extract_metadata(rule_config)
     run_number = get_next_run_number(base_dir, experiment, version)
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-    # output_path = os.path.join(
-    #     base_dir,
-    #     f"{experiment}_{version}_run{run_number}_{timestamp}.jsonl"
-    # )
-
     output_path = "datas/scoring/latest.jsonl"
-
     processed = 0
 
-    with open(input_path, "r") as fin, open(output_path, "w") as fout:
-        for line in fin:
-            tx = json.loads(line)
+    #  only change — read parquet instead of open/readline
+    df = pd.read_parquet(input_path)
+
+    with open(output_path, "w") as fout:
+        for _, row in df.iterrows():
+            tx = row.to_dict()
 
             score = scorer.calculate_heuristic_score(tx)
             verdict = decider.get_verdict(score)

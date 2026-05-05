@@ -105,7 +105,7 @@ def run_heuristic_experiment(config_path: str, data_path: str):
 
         logging.info(f"Evaluating heuristic rules on {data_path}...")
 
-        df = pd.read_json(data_path, lines=True)
+        df = pd.read_parquet(data_path)
 
         scorer = FraudScorer(config)
 
@@ -135,6 +135,6 @@ def run_heuristic_experiment(config_path: str, data_path: str):
 
 if __name__ == "__main__":
     CONFIG_FILE = "config/rules/baseline.yaml"
-    DATA_FILE = "datas/raw/train_snapshot.jsonl"
+    DATA_FILE = "datas/raw/train_snapshot.parquet"
 
     run_heuristic_experiment(CONFIG_FILE, DATA_FILE)
