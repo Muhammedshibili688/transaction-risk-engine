@@ -93,9 +93,12 @@
 #         }
 
 
-
+import sys
 import json
 from collections import defaultdict
+from src.exception import FraudException
+from src.logger import logging
+import pandas as pd
 
 
 class FraudModelEvaluator:
@@ -105,37 +108,79 @@ class FraudModelEvaluator:
     # -----------------------------
     # LOAD DATA
     # -----------------------------
+    # def load_data(self, feature_path, scoring_path):
+    #     features = {}
+
+    #     # Load feature data (ground truth)
+    #     with open(feature_path, "r") as f:
+    #         for line in f:
+    #             tx = json.loads(line)
+    #             features[tx["tx_id"]] = {
+    #                 "is_fraud": tx.get("is_fraud", 0),
+    #                 "amount": tx.get("amount_usd", 0)
+    #             }
+
+    #     results = []
+
+    #     # Load scoring output
+    #     with open(scoring_path, "r") as f:
+    #         for line in f:
+    #             tx = json.loads(line)
+    #             tx_id = tx["tx_id"]
+
+    #             if tx_id in features:
+    #                 results.append({
+    #                     "y_true": features[tx_id]["is_fraud"],
+    #                     "risk_score": tx.get("risk_score", 0),
+    #                     "amount": features[tx_id]["amount"]
+    #                 })
+
+    #     print(f"Loaded features: {len(features)}")
+    #     print(f"Matched results: {len(results)}")
+
+    #     return results
+
+
     def load_data(self, feature_path, scoring_path):
-        features = {}
+        """
+        Loads ground truth from Parquet and scores from JSONL.
+        Performs an optimized join on tx_id.
+        """
+        try:
+            logging.info(f"Loading features from {feature_path} (Parquet)")
+            # 1. Load ground truth from Parquet
+            # We only load the columns we need to save memory
+            df_features = pd.read_parquet(
+                feature_path, 
+                columns=["tx_id", "is_fraud", "amount_usd"]
+            )
 
-        # Load feature data (ground truth)
-        with open(feature_path, "r") as f:
-            for line in f:
-                tx = json.loads(line)
-                features[tx["tx_id"]] = {
-                    "is_fraud": tx.get("is_fraud", 0),
-                    "amount": tx.get("amount_usd", 0)
-                }
+            logging.info(f"Loading scores from {scoring_path} (JSONL)")
+            # 2. Load scoring results (Assuming these are still JSONL for now)
+            df_scores = pd.read_json(scoring_path, lines=True)
 
-        results = []
+            # 3. HIGH PERFORMANCE MERGE
+            # Instead of a manual loop, we use a database-style Inner Join
+            merged_df = pd.merge(
+                df_features, 
+                df_scores[['tx_id', 'risk_score']], 
+                on="tx_id", 
+                how="inner"
+            )
 
-        # Load scoring output
-        with open(scoring_path, "r") as f:
-            for line in f:
-                tx = json.loads(line)
-                tx_id = tx["tx_id"]
+            # Rename columns to match your compute_metrics logic
+            merged_df = merged_df.rename(columns={
+                "is_fraud": "y_true",
+                "amount_usd": "amount"
+            })
 
-                if tx_id in features:
-                    results.append({
-                        "y_true": features[tx_id]["is_fraud"],
-                        "risk_score": tx.get("risk_score", 0),
-                        "amount": features[tx_id]["amount"]
-                    })
+            logging.info(f"Successfully matched {len(merged_df)} records.")
+            
+            # Convert back to list of dicts to keep your compute_metrics code working
+            return merged_df.to_dict(orient="records")
 
-        print(f"Loaded features: {len(features)}")
-        print(f"Matched results: {len(results)}")
-
-        return results
+        except Exception as e:
+            raise FraudException(e, sys)
 
     # -----------------------------
     # COMPUTE METRICS

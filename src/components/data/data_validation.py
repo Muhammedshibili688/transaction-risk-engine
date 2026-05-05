@@ -39,7 +39,7 @@ class DataValidation:
             logging.info("Starting schema validation stage...")
             
             # 1. Load Data
-            df = pd.read_json(self.ingestion_artifact.trained_file_path, lines=True)
+            df = pd.read_parquet(self.ingestion_artifact.trained_file_path)
             
             # 2. Perform Check
             validation_status = self.validate_schema(df)
