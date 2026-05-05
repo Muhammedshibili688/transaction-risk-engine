@@ -5,49 +5,49 @@ stages:
     deps:
     - path: config/schema.yaml
       hash: md5
-      md5: d3a7ebb8a0de14cd0eb9494bdcc45200
-      size: 613
-    - path: datas/raw/train_snapshot.jsonl
+      md5: e8320950d4710db12f5407a4ed962523
+      size: 667
+    - path: datas/raw/train_snapshot.parquet
       hash: md5
-      md5: 0d81d0e5466b8e4ae6989cc06b5c84aa
-      size: 24722774
+      md5: e4aa2aebd38d4a82a33300a016ec5042
+      size: 33611671
     - path: src/components/data/data_validation.py
       hash: md5
-      md5: 9cd976b9b6a82f59e7e437eba5eb43a6
-      size: 3188
+      md5: 07c0c724dc1019be16819d14f213d9bc
+      size: 3097
     outs:
     - path: reports/data_validation/status.yaml
       hash: md5
-      md5: 625d3bfa2ed2e331511f273fa9b2c7e3
-      size: 128
+      md5: 488df4ce8a166793bf1ade1bf5086e0b
+      size: 131
   heuristic_analysis:
-    cmd: python src/pipeline/experiment_pipeline.py
+    cmd: python src/pipeline/experiment_pipeline.py --data 
+      datas/raw/train_snapshot.parquet
     deps:
     - path: config/rules/baseline.yaml
       hash: md5
       md5: 422a19a13a740d59500f166b625df477
       size: 219
-    - path: datas/raw/train_snapshot.jsonl
+    - path: datas/raw/train_snapshot.parquet
       hash: md5
-      md5: 0d81d0e5466b8e4ae6989cc06b5c84aa
-      size: 24722774
+      md5: e4aa2aebd38d4a82a33300a016ec5042
+      size: 33611671
     - path: src/components/model/scorer.py
       hash: md5
-      md5: b5992eb80794a723eaeda7620b38ec47
-      size: 840
+      md5: c588f90d186e7d510d55b986fad20f44
+      size: 818
     outs:
     - path: reports/metrics.json
       hash: md5
-      md5: 4ccd694d81eaabc0163e6bde0bd5a3ef
-      size: 105
+      md5: f741f4daa4e7a26dd8b12a3dee043b75
+      size: 106
   ingestion:
     cmd: python src/components/data/data_ingestion.py
     outs:
-    - path: datas/raw
+    - path: datas/raw/train_snapshot.parquet
       hash: md5
-      md5: bcb5bc46e31b03abf7cd235e62ac7ebe.dir
-      size: 24722774
-      nfiles: 1
+      md5: 91d0ecb3605701101f343a4a969b3436
+      size: 33313816
   feature_engineering:
     cmd: python -c "import shutil; shutil.copy('datas/raw/train_snapshot.jsonl',
       'datas/processed/features.jsonl')"
@@ -62,21 +62,21 @@ stages:
       md5: 0d81d0e5466b8e4ae6989cc06b5c84aa
       size: 24722774
   scoring:
-    cmd: python scoring_runner.py
+    cmd: python scoring_runner.py --data datas/raw/train_snapshot.parquet
     deps:
     - path: config/rules/baseline.yaml
       hash: md5
       md5: 422a19a13a740d59500f166b625df477
       size: 219
-    - path: datas/processed/features.jsonl
+    - path: datas/raw/train_snapshot.parquet
       hash: md5
-      md5: 0d81d0e5466b8e4ae6989cc06b5c84aa
-      size: 24722774
+      md5: 5f77c3e14066d1c82eaff9fa425158a3
+      size: 33343740
     outs:
     - path: datas/scoring
       hash: md5
-      md5: 02647d75fc619425c7eb6fc1f69333ea.dir
-      size: 3619892
+      md5: fa4b6c2ae3bf305017dd7c80212c9f71.dir
+      size: 0
       nfiles: 1
   evaluation:
     cmd: python evaluation_runner.py

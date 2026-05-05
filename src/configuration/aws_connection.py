@@ -22,9 +22,9 @@ class S3Connection:
                 # Production apps must handle "Transient Errors" (brief network drops)
                 aws_config = Config(
                     region_name=region_name,
-                    retries={'max_attempts': 3, 'mode': 'standard'},
-                    connect_timeout=5, 
-                    read_timeout=10
+                    retries={'max_attempts': 10, 'mode': 'adaptive'},
+                    connect_timeout=40 , 
+                    read_timeout=300 
                 )
 
                 # 2. IDENTITY AWARE AUTHENTICATION

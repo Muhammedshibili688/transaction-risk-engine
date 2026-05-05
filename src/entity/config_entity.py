@@ -16,11 +16,11 @@ class DataIngestionConfig:
     local_processed_path: Path = data_dir / "processed" / "features.jsonl"
     
     # 3. Training/ML Zone (Data pulled from S3 for validation/training)
-    training_file_path: Path = data_dir / "raw" / "train_snapshot.jsonl"
+    training_file_path: Path = data_dir / "raw" / "train_snapshot.parquet"
     
     # 4. S3 Keys
-    s3_raw_backup_key: str = "datas/fresh/transactions.jsonl"
-    s3_processed_key: str = "datas/processed/features.jsonl"
+    s3_raw_backup_key: str = "datas/fresh/transactions.parquet"
+    s3_processed_key: str = "datas/processed/features.parquet"
 
     # 5. Training Ingestion (Destination for S3 pull)
     ingested_train_dir: Path = data_dir / "raw"

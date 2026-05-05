@@ -1,31 +1,24 @@
 stages:
-
   ingestion:
     cmd: python src/components/data/data_ingestion.py
     outs:
-      - datas/raw
+      - datas/raw/train_snapshot.parquet:
+          cache: false    # ← stops DVC restoring bad cached version
+    always_changed: true
 
   data_validation:
     cmd: python src/components/data/data_validation.py
     deps:
-      - datas/raw/train_snapshot.jsonl
+      - datas/raw/train_snapshot.parquet
       - src/components/data/data_validation.py
       - config/schema.yaml
     outs:
       - reports/data_validation/status.yaml
 
-  #  ADD THIS (MISSING LINK)
-  feature_engineering:
-    cmd: python -c "import shutil; shutil.copy('datas/raw/train_snapshot.jsonl', 'datas/processed/features.jsonl')"
-    deps:
-      - datas/raw/train_snapshot.jsonl
-    outs:
-      - datas/processed/features.jsonl
-
   heuristic_analysis:
-    cmd: python src/pipeline/experiment_pipeline.py
+    cmd: python src/pipeline/experiment_pipeline.py --data datas/raw/train_snapshot.parquet
     deps:
-      - datas/raw/train_snapshot.jsonl
+      - datas/raw/train_snapshot.parquet
       - config/rules/baseline.yaml
       - src/components/model/scorer.py
     outs:
@@ -33,25 +26,29 @@ stages:
           cache: false
 
   scoring:
-    cmd: python scoring_runner.py
+    cmd: python scoring_runner.py --data datas/raw/train_snapshot.parquet
     deps:
-      - datas/processed/features.jsonl
+      - datas/raw/train_snapshot.parquet
       - config/rules/baseline.yaml
     outs:
-      - datas/scoring
+      - datas/scoring:
+          cache: false    # ← add this too
 
   evaluation:
-    cmd: python evaluation_runner.py
+    cmd: python evaluation_runner.py --data datas/raw/train_snapshot.parquet
     deps:
-      - datas/processed/features.jsonl
-      - datas/scoring
+      - datas/raw/train_snapshot.parquet
+      - datas/scoring/latest.jsonl
+      - evaluation_runner.py
+      - src/pipeline/evaluation_pipeline.py
     outs:
-      - reports/model_evaluation
+      - reports/model_evaluation:
+          cache: false
 
   threshold_optimization:
-    cmd: python threshold_runner.py
+    cmd: python threshold_runner.py --data datas/raw/train_snapshot.parquet
     deps:
-      - datas/processed/features.jsonl
-      - datas/scoring/latest.jsonl
+      - datas/raw/train_snapshot.parquet
     outs:
-      - reports/threshold_optimization/best_threshold.yaml
+      - reports/threshold_optimization/best_threshold.yaml:
+          cache: false
