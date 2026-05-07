@@ -5,12 +5,12 @@ stages:
     deps:
     - path: config/schema.yaml
       hash: md5
-      md5: e8320950d4710db12f5407a4ed962523
-      size: 667
+      md5: ac9c9653f007c2689d19fe96b58ae89c
+      size: 685
     - path: datas/raw/train_snapshot.parquet
       hash: md5
-      md5: e4aa2aebd38d4a82a33300a016ec5042
-      size: 33611671
+      md5: 1669a09e8188d8a92965f36ef3ef8c79
+      size: 33847498
     - path: src/components/data/data_validation.py
       hash: md5
       md5: 07c0c724dc1019be16819d14f213d9bc
@@ -26,28 +26,28 @@ stages:
     deps:
     - path: config/rules/baseline.yaml
       hash: md5
-      md5: 422a19a13a740d59500f166b625df477
-      size: 219
+      md5: 426e661da960733a202bfa07866bf20b
+      size: 335
     - path: datas/raw/train_snapshot.parquet
       hash: md5
-      md5: e4aa2aebd38d4a82a33300a016ec5042
-      size: 33611671
+      md5: 1669a09e8188d8a92965f36ef3ef8c79
+      size: 33847498
     - path: src/components/model/scorer.py
       hash: md5
-      md5: c588f90d186e7d510d55b986fad20f44
-      size: 818
+      md5: c4b34062a04c60dd0fa5cbf1013f3624
+      size: 1539
     outs:
     - path: reports/metrics.json
       hash: md5
-      md5: f741f4daa4e7a26dd8b12a3dee043b75
+      md5: 43f2f728fbb042c0116a676f305ef7ad
       size: 106
   ingestion:
     cmd: python src/components/data/data_ingestion.py
     outs:
     - path: datas/raw/train_snapshot.parquet
       hash: md5
-      md5: 91d0ecb3605701101f343a4a969b3436
-      size: 33313816
+      md5: 1669a09e8188d8a92965f36ef3ef8c79
+      size: 33847498
   feature_engineering:
     cmd: python -c "import shutil; shutil.copy('datas/raw/train_snapshot.jsonl',
       'datas/processed/features.jsonl')"
@@ -66,49 +66,60 @@ stages:
     deps:
     - path: config/rules/baseline.yaml
       hash: md5
-      md5: 422a19a13a740d59500f166b625df477
-      size: 219
+      md5: 426e661da960733a202bfa07866bf20b
+      size: 335
     - path: datas/raw/train_snapshot.parquet
       hash: md5
-      md5: 5f77c3e14066d1c82eaff9fa425158a3
-      size: 33343740
+      md5: 1669a09e8188d8a92965f36ef3ef8c79
+      size: 33847498
     outs:
     - path: datas/scoring
       hash: md5
-      md5: fa4b6c2ae3bf305017dd7c80212c9f71.dir
-      size: 0
+      md5: e20913b6f134de86d4d36ec640411bba.dir
+      size: 35299210
       nfiles: 1
   evaluation:
-    cmd: python evaluation_runner.py
+    cmd: python evaluation_runner.py --data datas/raw/train_snapshot.parquet
     deps:
-    - path: datas/processed/features.jsonl
+    - path: datas/raw/train_snapshot.parquet
       hash: md5
-      md5: 0d81d0e5466b8e4ae6989cc06b5c84aa
-      size: 24722774
-    - path: datas/scoring
+      md5: 1669a09e8188d8a92965f36ef3ef8c79
+      size: 33847498
+    - path: datas/scoring/latest.jsonl
       hash: md5
-      md5: 02647d75fc619425c7eb6fc1f69333ea.dir
-      size: 3619892
-      nfiles: 1
+      md5: 05d4ba0070083746b03a33f7d9a44cf9
+      size: 35299210
+    - path: evaluation_runner.py
+      hash: md5
+      md5: 3360b00729c4acb2b5b7fe037a249b41
+      size: 394
+    - path: src/pipeline/evaluation_pipeline.py
+      hash: md5
+      md5: 05689e47131ada5320d970fce9cdc22b
+      size: 3812
     outs:
     - path: reports/model_evaluation
       hash: md5
-      md5: f29bc57bfb13479273e86be68f655df1.dir
-      size: 368
+      md5: c69f43d493b458c84ae75f40290b8b17.dir
+      size: 371
       nfiles: 1
   threshold_optimization:
-    cmd: python threshold_runner.py
+    cmd: python threshold_runner.py --data datas/raw/train_snapshot.parquet
     deps:
-    - path: datas/processed/features.jsonl
+    - path: datas/raw/train_snapshot.parquet
       hash: md5
-      md5: 0d81d0e5466b8e4ae6989cc06b5c84aa
-      size: 24722774
+      md5: 1669a09e8188d8a92965f36ef3ef8c79
+      size: 33847498
     - path: datas/scoring/latest.jsonl
       hash: md5
-      md5: e8ec047128638e8c00dfa2de2a9ac5b1
-      size: 3619892
+      md5: 05d4ba0070083746b03a33f7d9a44cf9
+      size: 35299210
+    - path: threshold_runner.py
+      hash: md5
+      md5: 190eb5dd07bba74f9586597b7ede0eb3
+      size: 1593
     outs:
     - path: reports/threshold_optimization/best_threshold.yaml
       hash: md5
-      md5: 3d86e297232bbef8e314d6505a239fc8
+      md5: 749a9455120026a74efe73233844f0cf
       size: 52
