@@ -80,10 +80,19 @@ def run_evaluation(feature_path, scoring_path):
     mlflow.set_experiment(rule_config["experiment_name"])
 
     # ------------------ Evaluation ------------------
+
+    threshold_path = "reports/threshold_optimization/best_threshold.yaml"
+    if Path(threshold_path).exists():
+        with open(threshold_path) as f:
+            thresh_config = yaml.safe_load(f)
+        threshold = thresh_config.get("high_risk_threshold", 60)
+    else:
+        threshold = 60  # fallback only
+        
     evaluator = FraudModelEvaluator()
 
     data = evaluator.load_data(feature_path, scoring_path)
-    metrics = evaluator.compute_metrics(data)
+    metrics = evaluator.compute_metrics(data, threshold = threshold)
 
     os.makedirs("reports/model_evaluation", exist_ok=True)
 

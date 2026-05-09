@@ -35,17 +35,6 @@ stages:
       - datas/scoring:
           cache: false
 
-  evaluation:
-    cmd: python evaluation_runner.py --data datas/raw/train_snapshot.parquet
-    deps:
-      - datas/raw/train_snapshot.parquet
-      - datas/scoring/latest.jsonl
-      - evaluation_runner.py
-      - src/pipeline/evaluation_pipeline.py
-    outs:
-      - reports/model_evaluation:
-          cache: false
-
   threshold_optimization:
     cmd: python threshold_runner.py --data datas/raw/train_snapshot.parquet
     deps:
@@ -54,4 +43,16 @@ stages:
       - threshold_runner.py
     outs:
       - reports/threshold_optimization/best_threshold.yaml:
+          cache: false
+
+  evaluation:
+    cmd: python evaluation_runner.py --data datas/raw/train_snapshot.parquet
+    deps:
+      - datas/raw/train_snapshot.parquet
+      - datas/scoring/latest.jsonl
+      - reports/threshold_optimization/best_threshold.yaml
+      - evaluation_runner.py
+      - src/pipeline/evaluation_pipeline.py
+    outs:
+      - reports/model_evaluation:
           cache: false
