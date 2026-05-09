@@ -3,7 +3,7 @@ stages:
     cmd: python src/components/data/data_ingestion.py
     outs:
       - datas/raw/train_snapshot.parquet:
-          cache: false    # ← stops DVC restoring bad cached version
+          cache: false
     always_changed: true
 
   data_validation:
@@ -30,9 +30,10 @@ stages:
     deps:
       - datas/raw/train_snapshot.parquet
       - config/rules/baseline.yaml
+      - scoring_runner.py
     outs:
       - datas/scoring:
-          cache: false    # ← add this too
+          cache: false
 
   evaluation:
     cmd: python evaluation_runner.py --data datas/raw/train_snapshot.parquet
@@ -45,19 +46,11 @@ stages:
       - reports/model_evaluation:
           cache: false
 
-  # threshold_optimization:
-  #   cmd: python threshold_runner.py --data datas/raw/train_snapshot.parquet
-  #   deps:
-  #     - datas/raw/train_snapshot.parquet
-  #   outs:
-  #     - reports/threshold_optimization/best_threshold.yaml:
-  #         cache: false
-
   threshold_optimization:
     cmd: python threshold_runner.py --data datas/raw/train_snapshot.parquet
     deps:
       - datas/raw/train_snapshot.parquet
-      - datas/scoring/latest.jsonl          # ← add this
+      - datas/scoring/latest.jsonl
       - threshold_runner.py
     outs:
       - reports/threshold_optimization/best_threshold.yaml:

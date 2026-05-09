@@ -26,20 +26,20 @@ stages:
     deps:
     - path: config/rules/baseline.yaml
       hash: md5
-      md5: 426e661da960733a202bfa07866bf20b
-      size: 335
+      md5: e2398aef30d167db6e33ca7dbca218ad
+      size: 323
     - path: datas/raw/train_snapshot.parquet
       hash: md5
       md5: 1669a09e8188d8a92965f36ef3ef8c79
       size: 33847498
     - path: src/components/model/scorer.py
       hash: md5
-      md5: c4b34062a04c60dd0fa5cbf1013f3624
-      size: 1539
+      md5: ddaab896b076ff0274176f5a6577cf88
+      size: 4002
     outs:
     - path: reports/metrics.json
       hash: md5
-      md5: 43f2f728fbb042c0116a676f305ef7ad
+      md5: bfbcae4e8ea77e5ad8c6c6505cb563e4
       size: 106
   ingestion:
     cmd: python src/components/data/data_ingestion.py
@@ -66,17 +66,21 @@ stages:
     deps:
     - path: config/rules/baseline.yaml
       hash: md5
-      md5: 426e661da960733a202bfa07866bf20b
-      size: 335
+      md5: e2398aef30d167db6e33ca7dbca218ad
+      size: 323
     - path: datas/raw/train_snapshot.parquet
       hash: md5
       md5: 1669a09e8188d8a92965f36ef3ef8c79
       size: 33847498
+    - path: scoring_runner.py
+      hash: md5
+      md5: b3e42fc85e31f92205293e52f73f5752
+      size: 466
     outs:
     - path: datas/scoring
       hash: md5
-      md5: e20913b6f134de86d4d36ec640411bba.dir
-      size: 35299210
+      md5: 9725bf873ece79148b714d2c8911fd34.dir
+      size: 79340374
       nfiles: 1
   evaluation:
     cmd: python evaluation_runner.py --data datas/raw/train_snapshot.parquet
@@ -87,8 +91,8 @@ stages:
       size: 33847498
     - path: datas/scoring/latest.jsonl
       hash: md5
-      md5: 05d4ba0070083746b03a33f7d9a44cf9
-      size: 35299210
+      md5: 5f591dc94d2d82ae53bf3230ea88e4f3
+      size: 79340374
     - path: evaluation_runner.py
       hash: md5
       md5: 3360b00729c4acb2b5b7fe037a249b41
@@ -100,8 +104,8 @@ stages:
     outs:
     - path: reports/model_evaluation
       hash: md5
-      md5: c69f43d493b458c84ae75f40290b8b17.dir
-      size: 371
+      md5: d4898beaf2537ee177fbc8f255eef990.dir
+      size: 377
       nfiles: 1
   threshold_optimization:
     cmd: python threshold_runner.py --data datas/raw/train_snapshot.parquet
@@ -112,8 +116,8 @@ stages:
       size: 33847498
     - path: datas/scoring/latest.jsonl
       hash: md5
-      md5: 05d4ba0070083746b03a33f7d9a44cf9
-      size: 35299210
+      md5: 5f591dc94d2d82ae53bf3230ea88e4f3
+      size: 79340374
     - path: threshold_runner.py
       hash: md5
       md5: 190eb5dd07bba74f9586597b7ede0eb3
@@ -121,5 +125,5 @@ stages:
     outs:
     - path: reports/threshold_optimization/best_threshold.yaml
       hash: md5
-      md5: 749a9455120026a74efe73233844f0cf
+      md5: 189d6694c8f195f737ef5edc0500d99a
       size: 52

@@ -81,12 +81,17 @@ def run_scoring(input_path: str):
             score = scorer.calculate_heuristic_score(tx)
             verdict = decider.get_verdict(score)
 
+            # scoring_pipeline.py — add context to output
             result = {
                 "tx_id": tx["tx_id"],
                 "risk_score": score,
-                "verdict": verdict
+                "verdict": verdict,
+                # context for analysis
+                "amount_usd": tx.get("amount_usd", 0),
+                "transaction_count_1m": tx.get("transaction_count_1m", 0),
+                "small_amount_burst": tx.get("small_amount_burst", 0),
+                "merchant_repeat_count": tx.get("merchant_repeat_count", 0),
             }
-
             fout.write(json.dumps(result) + "\n")
             processed += 1
 

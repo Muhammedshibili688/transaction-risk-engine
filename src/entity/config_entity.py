@@ -54,15 +54,17 @@ class ModelTrainerConfig:
 
 @dataclass
 class DecisionConfig:
-    high_risk_threshold: int = 80
-    medium_risk_threshold: int = 50
+    high_risk_threshold: int = 70
+    medium_risk_threshold: int = 35
     verdict_stream_name: str = "fraud_verdicts"
 
     @classmethod
-    def load_from_yaml(cls, path="config/decision.yaml"):
+    def load_from_yaml(cls, path="reports/threshold_optimization/best_threshold.yaml"):
         if Path(path).exists():
             with open(path, "r") as f:
                 data = yaml.safe_load(f)
-            return cls(**data)
+            return cls(
+                high_risk_threshold=data.get("high_risk_threshold", 70),
+                medium_risk_threshold=data.get("medium_risk_threshold", 35)
+            )
         return cls()
-
