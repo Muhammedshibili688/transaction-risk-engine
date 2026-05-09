@@ -56,11 +56,13 @@
 
 
 import os
+import yaml
 import json
 from datetime import datetime
 import mlflow
 import dagshub
 from dotenv import load_dotenv
+from pathlib import Path
 
 from src.components.model.model_evaluation import FraudModelEvaluator
 from src.pipeline.scoring_pipeline import load_rule_config
@@ -82,13 +84,14 @@ def run_evaluation(feature_path, scoring_path):
     # ------------------ Evaluation ------------------
 
     threshold_path = "reports/threshold_optimization/best_threshold.yaml"
+    
     if Path(threshold_path).exists():
         with open(threshold_path) as f:
             thresh_config = yaml.safe_load(f)
         threshold = thresh_config.get("high_risk_threshold", 60)
     else:
         threshold = 60  # fallback only
-        
+
     evaluator = FraudModelEvaluator()
 
     data = evaluator.load_data(feature_path, scoring_path)

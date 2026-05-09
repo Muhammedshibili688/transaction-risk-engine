@@ -22,8 +22,9 @@ columns:
   country_change: int64
   country_avg_amount: float64
   user_country_ratio: float64
-  # risk score and verdict removed from Consumer
-  # risk_score: int64
-  # verdict: object
+  merchant: object
+  transaction_count_1m: int64
+  small_amount_burst: int64
+  merchant_repeat_count: int64
 
 target_column: is_fraud
