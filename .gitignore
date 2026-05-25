@@ -26,6 +26,9 @@ datas/*
 models/
 reports/
 venv/
+logs/
+__pycache__/
+*.pyc
 
 # Distribution / packaging
 .Python
@@ -228,3 +231,7 @@ marimo/_lsp/
 __marimo__/
 /models
 /datas
+logs/
+src.egg-info/
+__pycache__/
+*.pyc
