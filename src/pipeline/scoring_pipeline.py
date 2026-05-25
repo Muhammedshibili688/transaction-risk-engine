@@ -56,23 +56,29 @@ def get_next_run_number(base_dir, experiment, version):
 # -------------------------
 # MAIN PIPELINE
 # -------------------------
-def run_scoring(input_path: str):
+def run_scoring(input_path: str, config_path: str):
 
-    rule_config = load_rule_config()
+    rule_config = load_rule_config(config_path)
     scorer = FraudScorer(rule_config)
     decider = DecisionEngine(DecisionConfig())
 
-    base_dir = "datas/scoring"
+    base_dir = "datas/evaluation"
     os.makedirs(base_dir, exist_ok=True)
 
     experiment, version = extract_metadata(rule_config)
     run_number = get_next_run_number(base_dir, experiment, version)
 
-    output_path = "datas/scoring/latest.jsonl"
+    output_path = os.path.join(
+        base_dir,
+        f"{experiment}_{version}_run{run_number:03d}.jsonl"
+    )
     processed = 0
 
     #  only change — read parquet instead of open/readline
-    df = pd.read_parquet(input_path)
+    df = pd.read_json(
+        input_path,
+        lines=True
+    )
 
     with open(output_path, "w") as fout:
         for _, row in df.iterrows():
@@ -84,15 +90,17 @@ def run_scoring(input_path: str):
             # scoring_pipeline.py — add context to output
             result = {
                 "tx_id": tx["tx_id"],
+                "timestamp": tx["timestamp"].isoformat(),
+                "user_id": tx["user_id"],
+
                 "risk_score": score,
                 "verdict": verdict,
-                # context for analysis
-                "amount_usd": tx.get("amount_usd", 0),
-                "transaction_count_1m": tx.get("transaction_count_1m", 0),
-                "small_amount_burst": tx.get("small_amount_burst", 0),
-                "merchant_repeat_count": tx.get("merchant_repeat_count", 0),
+
+                "is_fraud": tx["is_fraud"],
+                "fraud_type": tx.get("fraud_type"),
+                "campaign_id": tx.get("campaign_id")
             }
-            fout.write(json.dumps(result) + "\n")
+            fout.write(json.dumps(result, default = str) + "\n")
             processed += 1
 
     print(f"Run {run_number} complete → {output_path}")
