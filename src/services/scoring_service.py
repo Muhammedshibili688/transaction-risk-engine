@@ -2,23 +2,24 @@ import json
 import os
 import time
 import random
-
+from dotenv import load_dotenv
+load_dotenv()
 from src.components.model.scorer import FraudScorer
 from src.components.model.decision_engine import DecisionEngine
 from src.entity.config_entity import DecisionConfig
 from src.pipeline.scoring_pipeline import load_rule_config
 from src.logger import logging
-from src.entity.config_entity import DataIngestionConfig
 from src.configuration.redis_connection import RedisClient
 from src.feature_store.online_feature_store import OnlineFeatureStore
 from src.features.online_feature_engineering import OnlineFeatureEngineer
 
+SCORED_STREAM = os.getenv("SCORED_STREAM", "scored_transactions")
+STREAM_MAXLEN = int(os.getenv("STREAM_MAXLEN", 400000))
 
 class ScoringService:
     def __init__(
         self,
-        config_path="config/rules/baseline.yaml",
-        consumer_name="worker1"
+        config_path="config/rules/baseline.yaml"
     ):
         rule_config = load_rule_config(config_path)
 
@@ -28,62 +29,11 @@ class ScoringService:
         self.feature_store = OnlineFeatureStore()
         self.feature_engineer = OnlineFeatureEngineer()
 
-        self.config = DataIngestionConfig()
         self.redis = RedisClient().client
 
-        os.makedirs(
-            self.config.local_processed_path.parent,
-            exist_ok=True
+        logging.info(
+            f"Hot-path scoring initialized with config={config_path}"
         )
-
-        processed_path = (
-            f"datas/processed/{consumer_name}_features.jsonl"
-        )
-
-        prediction_path = (
-            f"datas/evaluation/{consumer_name}_predictions.jsonl"
-        )
-
-        os.makedirs(
-            "datas/processed",
-            exist_ok=True
-        )
-
-        os.makedirs(
-            "datas/evaluation",
-            exist_ok=True
-        )
-
-        self.pred_writer = open(
-            prediction_path,
-            "a",
-            buffering=1
-        )
-
-        logging.info("Hot-path scoring service initialized")
-
-    # def _save_processed(self, record):
-    #     try:
-    #         self.processed_writer.write(
-    #             json.dumps(record) + "\n"
-    #         )
-    #     except Exception:
-    #         logging.exception(
-    #             "Failed saving processed snapshot"
-    #         )
-
-    def _save_prediction(self, record):
-        if not self.pred_writer:
-            return
-
-        try:
-            self.pred_writer.write(
-                json.dumps(record) + "\n"
-            )
-        except Exception:
-            logging.exception(
-                "Failed saving prediction"
-            )
 
     def process_transaction(self, tx):
 
@@ -142,11 +92,11 @@ class ScoringService:
         }
 
         self.redis.xadd(
-            "scored_transactions",
+            SCORED_STREAM,
             {
                 "data": json.dumps(event)
             },
-            maxlen = 400000,
+            maxlen=STREAM_MAXLEN,
             approximate = True
         )
 

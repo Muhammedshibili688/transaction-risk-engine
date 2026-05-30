@@ -38,8 +38,7 @@ def main(config_path, consumer_name):
     ensure_group(redis_client)
 
     scoring_service = ScoringService(
-        config_path=config_path,
-        consumer_name=consumer_name
+        config_path=config_path
     )
 
     logging.info(
