@@ -1,55 +1,84 @@
 import os
-import sys
 from pathlib import Path
+
 from dotenv import load_dotenv
-from src.exception import FraudException
-from src.logger import logging
-from src.entity.config_entity import DataIngestionConfig
-from src.entity.artifact_entity import DataIngestionArtifact
+
 from src.configuration.aws_connection import S3Connection
+from src.logger import logging
 
 load_dotenv()
-TRAINING_BUCKET_NAME = os.getenv("TRAINING_BUCKET_NAME")
+
+S3_BUCKET = os.getenv("TRAINING_BUCKET_NAME")
+
+if not S3_BUCKET:
+    raise ValueError(
+        "TRAINING_BUCKET_NAME environment variable not set"
+    )
+
+DATASETS = {
+    "raw/raw.parquet":
+        "datas/raw/raw.parquet",
+
+    "features/features.parquet":
+        "datas/features/features.parquet",
+
+    "labels/labels.parquet":
+        "datas/labels/labels.parquet"
+}
 
 
 class DataIngestion:
-    def __init__(self, config: DataIngestionConfig):
-        try:
-            self.config = config
-            self.s3 = S3Connection()
-            logging.info("Data Ingestion Component Initialized.")
-        except Exception as e:
-            raise FraudException(e, sys)
 
-    def initiate_data_ingestion(self) -> DataIngestionArtifact:
-        try:
-            logging.info("Downloading Gold Snapshot from S3 for training...")
-            self.config.ingested_train_dir.mkdir(parents=True, exist_ok=True)
+    def __init__(self):
+        self.s3 = S3Connection()
 
-            target_path = self.config.training_file_path
+    def create_directories(self):
 
-            self.s3.s3_client.download_file(
-                TRAINING_BUCKET_NAME,
-                self.config.s3_processed_key,
-                str(target_path)
+        for local_path in DATASETS.values():
+
+            Path(local_path).parent.mkdir(
+                parents=True,
+                exist_ok=True
             )
 
-            if target_path.stat().st_size == 0:
-                raise Exception("Downloaded snapshot is empty — aborting pipeline")
+    def download_dataset(
+        self,
+        s3_key,
+        local_path
+    ):
 
-            logging.info(f"Gold Snapshot downloaded to {target_path}")
+        logging.info(
+            f"Downloading {s3_key}"
+        )
 
-            return DataIngestionArtifact(
-                trained_file_path=target_path,
-                s3_sync_status=True
+        self.s3.s3_client.download_file(
+            S3_BUCKET,
+            s3_key,
+            local_path
+        )
+
+        logging.info(
+            f"Saved {local_path}"
+        )
+
+    def run(self):
+
+        self.create_directories()
+
+        for s3_key, local_path in DATASETS.items():
+
+            self.download_dataset(
+                s3_key,
+                local_path
             )
 
-        except Exception as e:
-            raise FraudException(e, sys)
+        logging.info(
+            "Data ingestion completed"
+        )
 
 
 if __name__ == "__main__":
-    config = DataIngestionConfig()
-    ingestion = DataIngestion(config)
-    artifact = ingestion.initiate_data_ingestion()
-    print(f"Ingestion Artifact: {artifact}")
+
+    ingestion = DataIngestion()
+
+    ingestion.run()

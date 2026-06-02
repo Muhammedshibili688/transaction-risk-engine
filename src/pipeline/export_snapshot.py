@@ -44,6 +44,27 @@ LABEL_COLUMNS = [
     "campaign_id"
 ]
 
+FEATURE_COLUMNS = [
+    "tx_id",
+    "geo_distance",
+    "geo_speed",
+    "impossible_travel",
+    "is_new_device",
+    "is_new_ip",
+    "distinct_devices_24h",
+    "distinct_ips_24h",
+    "country_change",
+    "amount_ratio",
+    "country_avg_amount",
+    "user_country_ratio",
+    "transaction_count_1m",
+    "transaction_count_5m",
+    "transaction_count_1h",
+    "transaction_count_24h",
+    "small_amount_burst",
+    "merchant_repeat_count"
+]
+
 def ensure_tmp():
     if os.path.exists(TMP_DIR):
         shutil.rmtree(TMP_DIR)
@@ -60,11 +81,13 @@ def read_scored_stream(redis_client):
 
     raw_path = tmp_file("raw.jsonl")
     labels_path = tmp_file("labels.jsonl")
+    features_path = tmp_file("features.jsonl")
 
     count = 0
 
     with open(raw_path, "w", encoding="utf-8") as raw_f, \
-         open(labels_path, "w", encoding="utf-8") as label_f:
+         open(labels_path, "w", encoding="utf-8") as label_f,\
+         open(features_path, "w", encoding="utf-8") as feature_f:
 
         logging.info(
             f"Reading Redis stream: {SCORED_STREAM}"
@@ -97,12 +120,21 @@ def read_scored_stream(redis_client):
                             for col in LABEL_COLUMNS
                         }
 
+                        feature_row = {
+                            col: record.get(col)
+                            for col in FEATURE_COLUMNS
+                        }
+
                         raw_f.write(
                             json.dumps(raw_row) + "\n"
                         )
 
                         label_f.write(
                             json.dumps(label_row) + "\n"
+                        )
+
+                        feature_f.write(
+                            json.dumps(feature_row) + "\n"
                         )
 
                         count += 1
@@ -163,14 +195,24 @@ def convert_and_upload():
         inplace=True
     )
 
+    feature_df = pd.read_json(
+        tmp_file("features.jsonl"),
+        lines=True
+    )
+
     label_df.drop_duplicates(
         subset=["tx_id"],
         inplace=True
     )
 
-    if len(raw_df) != len(label_df):
+    feature_df.drop_duplicates(
+        subset=["tx_id"],
+        inplace=True
+    )
+
+    if not (len(raw_df) == len(label_df) == len(feature_df)):
         raise ValueError(
-            f"Row mismatch: raw={len(raw_df)} labels={len(label_df)}"
+            f"Row mismatch: raw={len(raw_df)} labels={len(label_df)} features={len(feature_df)}"
         )
 
     logging.info(
@@ -189,6 +231,13 @@ def convert_and_upload():
         s3.s3_client,
         S3_BUCKET,
         "labels/labels.parquet"
+    )
+
+    upload_df_to_s3(
+        feature_df,
+        s3.s3_client,
+        S3_BUCKET,
+        "features/features.parquet"
     )
 
 def cleanup():
