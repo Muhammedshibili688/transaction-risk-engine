@@ -232,13 +232,44 @@ def log_experiment(
         "na"
     )
 
-    with mlflow.start_run(
-        run_name = (
-            f"{config['rule_version']}"
+    weights = config.get(
+    "weights",
+    {}
+    )
+
+    new_device = weights.get(
+        "new_device",
+        "na"
+    )
+
+    new_ip = weights.get(
+        "new_ip",
+        "na"
+    )
+
+    country_change = weights.get(
+        "country_change",
+        "na"
+    )
+
+    impossible_travel = weights.get(
+        "impossible_travel",
+        "na"
+    )
+
+    run_name = (
+            f"{rule_version}"
             f"_geo{geo_speed_limit}"
             f"_amt{amount_ratio_limit}"
             f"_sw{switch_count_limit}"
+            f"_dev{new_device}"
+            f"_ip{new_ip}"
+            f"_cc{country_change}"
+            f"_imp{impossible_travel}"
         )
+
+    with mlflow.start_run(
+        run_name = run_name
     ):
 
         mlflow.log_params(
@@ -266,10 +297,7 @@ def log_experiment(
 
         prediction_path = (
             f"datas/predictions/"
-            f"{rule_version}"
-            f"_geo{geo_speed_limit}"
-            f"_amt{amount_ratio_limit}"
-            f"_sw{switch_count_limit}.parquet"
+            f"{run_name}.parquet"
         )
 
         predictions_df[

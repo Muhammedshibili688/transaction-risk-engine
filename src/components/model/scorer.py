@@ -21,17 +21,67 @@ class FraudScorer:
     def _behavioral_risk(self, tx: dict) -> int:
 
         score = 0
-        speed = tx.get('geo_speed', 0)
-        speed_limit = self.limits.get('geo_speed_limit', 1050)
+
+        speed = tx.get(
+            "geo_speed",
+            0
+        )
+
+        speed_limit = self.limits.get(
+            "geo_speed_limit",
+            1050
+        )
 
         if speed > speed_limit:
-            # /250 instead of /500 — more aggressive escalation
-            score += min(70, int((speed - speed_limit) / 250 * 40))
+            score += min(
+                70,
+                int(
+                    (speed - speed_limit)
+                    / 250 * 40
+                )
+            )
 
-        ratio = tx.get('amount_ratio', 0)
-        ratio_limit = self.limits.get('amount_ratio_limit', 3.0)
+        ratio = tx.get(
+            "amount_ratio",
+            0
+        )
+
+        ratio_limit = self.limits.get(
+            "amount_ratio_limit",
+            3.0
+        )
+
         if ratio > ratio_limit:
-            score += min(30, int((ratio / ratio_limit) * 10))
+            score += min(
+                30,
+                int(
+                    (ratio / ratio_limit)
+                    * 10
+                )
+            )
+
+        # -----------------------
+        # Z-SCORE SIGNAL
+        # -----------------------
+
+        z_score = tx.get(
+            "z_score",
+            0
+        )
+
+        # Account Takeover
+        if z_score > 2:
+            score += 10
+
+        if z_score > 4:
+            score += 15
+
+        # Card Testing
+        if z_score < -0.6:
+            score += 10
+
+        if z_score < -0.8:
+            score += 15
 
         return min(score, 70)
 

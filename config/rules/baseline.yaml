@@ -1,5 +1,5 @@
 experiment_name: "Heuristic_Rule"
-rule_version: "v1.0"
+rule_version: "v2.0"
 
 thresholds:
   geo_speed_limit: 800
@@ -8,10 +8,10 @@ thresholds:
 
 weights:
   # identity signals
-  new_device: 40
-  new_ip: 5
+  new_device: 25
+  new_ip: 10
   country_change: 25
 
   # behavioral signals (used as base multipliers)
-  impossible_travel: 40
-  high_risk_merchant: 10
+  impossible_travel: 20
+  high_risk_merchant: 15
