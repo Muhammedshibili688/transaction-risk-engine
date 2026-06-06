@@ -1,268 +1,207 @@
-# import json
-# from collections import defaultdict
-
-
-# class FraudModelEvaluator:
-#     def __init__(self):
-#         self.metrics = defaultdict(int)
-
-#     def load_data(self, feature_path, scoring_path):
-#         features = {}
-#         with open(feature_path, "r") as f:
-#             for line in f:
-#                 tx = json.loads(line)
-#                 features[tx["tx_id"]] = {
-#                 "is_fraud": tx.get("is_fraud", 0),
-#                 "amount": tx.get("amount_usd", 0)
-#                 }
-
-#         results = []
-#         with open(scoring_path, "r") as f:
-#             for line in f:
-#                 tx = json.loads(line)
-#                 tx_id = tx["tx_id"]
-
-#                 if tx_id in features:
-#                     results.append({
-#                         "y_true": features[tx_id]["is_fraud"],
-#                         # "y_pred": 1 if tx["verdict"] == "BLOCK" else 0,
-#                         "risk_score": tx.get("risk_score", 0),
-#                         "amount": features[tx_id]["amount"]
-#                     })
-
-#         print(f"Loaded features: {len(features)}")
-#         print(f"Matched results: {len(results)}")
-
-#         return results
-
-#     def compute_metrics(self, data, cost_per_review=2.0):
-#         TP = FP = TN = FN = 0
-#         total_fraud_amount = 0
-#         missed_fraud_amount = 0
-
-#         for row in data:
-#             y_true = row["y_true"]
-#             score = row["risk_score"]
-#             y_pred = 1 if score >= threshold else 0
-#             amount = row["amount"]
-
-#             if y_true == 1:
-#                 total_fraud_amount += amount
-
-#             if y_true == 1 and y_pred == 1:
-#                 TP += 1
-#             elif y_true == 0 and y_pred == 1:
-#                 FP += 1
-#             elif y_true == 0 and y_pred == 0:
-#                 TN += 1
-#             elif y_true == 1 and y_pred == 0:
-#                 FN += 1
-#                 missed_fraud_amount += amount
-
-#         TOTAL = (TP + FP +TN + FN)
-
-#         if TOTAL == 0:
-#             return {
-#                 "error": "No matching data between features and scoring"
-#             }
-
-#         precision = TP / (TP + FP) if (TP + FP) else 0
-#         recall = TP / (TP + FN) if (TP + FN) else 0
-#         fpr = FP / (FP + TN) if (FP + TN) else 0
-#         fnr = FN / (FN + TP) if (FN + TP) else 0
-
-#         fraude_rate = (FN + TP) / TOTAL
-#         alert_rate = (TP + FP) / TOTAL
-
-#         expected_loss = missed_fraud_amount
-#         review_cost = FP * cost_per_review
-
-#         return {
-#             "TP": TP,
-#             "FP": FP,
-#             "TN": TN,
-#             "FN": FN,
-#             "precision": round(precision, 4),
-#             "recall": round(recall, 4),
-
-#             "false_positive_rate": round(fpr, 4),
-#             "false_negative_rate": round(fnr, 4),
-
-#             "expected_loss_usd": round(expected_loss, 2),
-#             "review_cost_usd": round(review_cost, 2)
-#         }
-
-
-import sys
-import json
-from collections import defaultdict
-from src.exception import FraudException
-from src.logger import logging
+import joblib
 import pandas as pd
 
-
-class FraudModelEvaluator:
-    def __init__(self):
-        self.metrics = defaultdict(int)
-
-    # -----------------------------
-    # LOAD DATA
-    # -----------------------------
-    # def load_data(self, feature_path, scoring_path):
-    #     features = {}
-
-    #     # Load feature data (ground truth)
-    #     with open(feature_path, "r") as f:
-    #         for line in f:
-    #             tx = json.loads(line)
-    #             features[tx["tx_id"]] = {
-    #                 "is_fraud": tx.get("is_fraud", 0),
-    #                 "amount": tx.get("amount_usd", 0)
-    #             }
-
-    #     results = []
-
-    #     # Load scoring output
-    #     with open(scoring_path, "r") as f:
-    #         for line in f:
-    #             tx = json.loads(line)
-    #             tx_id = tx["tx_id"]
-
-    #             if tx_id in features:
-    #                 results.append({
-    #                     "y_true": features[tx_id]["is_fraud"],
-    #                     "risk_score": tx.get("risk_score", 0),
-    #                     "amount": features[tx_id]["amount"]
-    #                 })
-
-    #     print(f"Loaded features: {len(features)}")
-    #     print(f"Matched results: {len(results)}")
-
-    #     return results
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    confusion_matrix,
+    roc_auc_score,
+    average_precision_score
+)
 
 
-    def load_data(self, feature_path, scoring_path):
-        """
-        Loads ground truth from Parquet and scores from JSONL.
-        Performs an optimized join on tx_id.
-        """
-        try:
-            logging.info(f"Loading features from {feature_path} (Parquet)")
-            # 1. Load ground truth from Parquet
-            # We only load the columns we need to save memory
-            df_features = pd.read_parquet(
-                feature_path, 
-                columns=["tx_id", "is_fraud", "amount_usd"]
+class ModelEvaluation:
+
+    def load_model(
+        self,
+        model_path
+    ):
+
+        return joblib.load(
+            model_path
+        )
+
+    def load_scaler(
+        self,
+        scaler_path
+    ):
+
+        return joblib.load(
+            scaler_path
+        )
+
+    def evaluate(
+        self,
+        model,
+        X_test,
+        y_test
+    ):
+
+        predictions = (
+            model.predict(
+                X_test
             )
+        )
 
-            logging.info(f"Loading scores from {scoring_path} (JSONL)")
-            # 2. Load scoring results (Assuming these are still JSONL for now)
-            df_scores = pd.read_json(scoring_path, lines=True)
+        probabilities = (
+            model.predict_proba(
+                X_test
+            )[:,1]
+        )
 
-            # 3. HIGH PERFORMANCE MERGE
-            # Instead of a manual loop, we use a database-style Inner Join
-            merged_df = pd.merge(
-                df_features, 
-                df_scores[['tx_id', 'risk_score']], 
-                on="tx_id", 
-                how="inner"
+        accuracy = (
+            accuracy_score(
+                y_test,
+                predictions
             )
+        )
 
-            # Rename columns to match your compute_metrics logic
-            merged_df = merged_df.rename(columns={
-                "is_fraud": "y_true",
-                "amount_usd": "amount"
-            })
+        precision = (
+            precision_score(
+                y_test,
+                predictions
+            )
+        )
 
-            logging.info(f"Successfully matched {len(merged_df)} records.")
-            
-            # Convert back to list of dicts to keep your compute_metrics code working
-            return merged_df.to_dict(orient="records")
+        recall = (
+            recall_score(
+                y_test,
+                predictions
+            )
+        )
 
-        except Exception as e:
-            raise FraudException(e, sys)
+        f1 = (
+            f1_score(
+                y_test,
+                predictions
+            )
+        )
 
-    # -----------------------------
-    # COMPUTE METRICS
-    # -----------------------------
-    def compute_metrics(self, data, threshold=60, cost_per_review=2.0):
+        roc_auc = (
+            roc_auc_score(
+                y_test,
+                probabilities
+            )
+        )
 
-        if not data:
-            return {
-                "error": "No matching data between features and scoring"
-            }
+        pr_auc = (
+            average_precision_score(
+                y_test,
+                probabilities
+            )
+        )
 
-        TP = FP = TN = FN = 0
-        total_fraud_amount = 0
-        missed_fraud_amount = 0
+        tn, fp, fn, tp = (
+            confusion_matrix(
+                y_test,
+                predictions
+            ).ravel()
+        )
 
-        for row in data:
-            y_true = row["y_true"]
-            score = row["risk_score"]
-            amount = row["amount"]
+        review_rate = (
+            (tp + fp)
+            /
+            len(y_test)
+        )
 
-            # Threshold-based prediction
-            y_pred = 1 if score >= threshold else 0
+        metrics = {
 
-            if y_true == 1:
-                total_fraud_amount += amount
+            "accuracy":
+                accuracy,
 
-            if y_true == 1 and y_pred == 1:
-                TP += 1
-            elif y_true == 0 and y_pred == 1:
-                FP += 1
-            elif y_true == 0 and y_pred == 0:
-                TN += 1
-            elif y_true == 1 and y_pred == 0:
-                FN += 1
-                missed_fraud_amount += amount
+            "precision":
+                precision,
 
-        TOTAL = TP + FP + TN + FN
+            "recall":
+                recall,
 
-        if TOTAL == 0:
-            return {
-                "error": "No valid predictions"
-            }
+            "f1":
+                f1,
 
-        # -----------------------------
-        # CLASSIFICATION METRICS
-        # -----------------------------
-        precision = TP / (TP + FP) if (TP + FP) else 0
-        recall = TP / (TP + FN) if (TP + FN) else 0
-        fpr = FP / (FP + TN) if (FP + TN) else 0
-        fnr = FN / (FN + TP) if (FN + TP) else 0
+            "roc_auc":
+                roc_auc,
 
-        fraud_rate = (FN + TP) / TOTAL
-        alert_rate = (TP + FP) / TOTAL
+            "pr_auc":
+                pr_auc,
 
-        # -----------------------------
-        # BUSINESS METRICS
-        # -----------------------------
-        expected_loss = missed_fraud_amount
-        review_cost = FP * cost_per_review
-        total_cost = expected_loss + review_cost
+            "tp":
+                int(tp),
 
-        return {
-            "threshold": threshold,
+            "fp":
+                int(fp),
 
-            # confusion matrix
-            "TP": TP,
-            "FP": FP,
-            "TN": TN,
-            "FN": FN,
+            "tn":
+                int(tn),
 
-            # classification
-            "precision": round(precision, 4),
-            "recall": round(recall, 4),
-            "false_positive_rate": round(fpr, 4),
-            "false_negative_rate": round(fnr, 4),
+            "fn":
+                int(fn),
 
-            # system behavior
-            "fraud_rate": round(fraud_rate, 4),
-            "alert_rate": round(alert_rate, 4),
-
-            # business impact
-            "expected_loss_usd": round(expected_loss, 2),
-            "review_cost_usd": round(review_cost, 2),
-            "total_cost_usd": round(total_cost, 2)
+            "review_rate":
+                review_rate
         }
+
+        return metrics
+
+    def show_metrics(
+        self,
+        metrics
+    ):
+
+        print("\n")
+        print("=" * 80)
+        print("MODEL METRICS")
+        print("=" * 80)
+
+        for k, v in metrics.items():
+
+            print(
+                f"{k}: {v}"
+            )
+
+    def show_coefficients(
+        self,
+        model,
+        feature_columns
+    ):
+
+        coef_df = pd.DataFrame(
+            {
+                "feature":
+                    feature_columns,
+
+                "coefficient":
+                    model.coef_[0]
+            }
+        )
+
+        coef_df["abs_coef"] = (
+            coef_df["coefficient"]
+            .abs()
+        )
+
+        coef_df = (
+            coef_df
+            .sort_values(
+                by="abs_coef",
+                ascending=False
+            )
+        )
+
+        print("\n")
+        print("=" * 80)
+        print("LOGISTIC COEFFICIENTS")
+        print("=" * 80)
+
+        print(
+            coef_df[
+                [
+                    "feature",
+                    "coefficient"
+                ]
+            ]
+            .to_string(
+                index=False
+            )
+        )
