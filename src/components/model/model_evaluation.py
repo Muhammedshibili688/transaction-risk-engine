@@ -205,3 +205,38 @@ class ModelEvaluation:
                 index=False
             )
         )
+    
+    def show_feature_importance(
+        self,
+        model,
+        feature_columns
+    ):
+
+        import pandas as pd
+
+        importance_df = pd.DataFrame(
+            {
+                "feature": feature_columns,
+                "importance":
+                model.feature_importances_
+            }
+        )
+
+        importance_df = (
+            importance_df
+            .sort_values(
+                "importance",
+                ascending=False
+            )
+        )
+
+        print("\n")
+        print("=" * 80)
+        print("FEATURE IMPORTANCE")
+        print("=" * 80)
+
+        print(
+            importance_df.to_string(
+                index=False
+            )
+        )
