@@ -1,6 +1,6 @@
 import joblib
 from sklearn.model_selection import GridSearchCV
-from xgboost import XGBClassifier
+from sklearn.linear_model import LogisticRegression
 
 
 class ModelTraining:
@@ -25,10 +25,9 @@ class ModelTraining:
     ):
 
         grid = GridSearchCV(
-            XGBClassifier(
-                n_estimators=100,
-                max_depth=6,
-                learning_rate=0.1,
+            estimator = LogisticRegression(
+                max_iter=1000,
+                class_weight="balanced",
                 random_state=42
             ),
 

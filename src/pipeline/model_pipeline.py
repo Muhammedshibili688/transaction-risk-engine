@@ -11,7 +11,7 @@ from src.components.model.model_training import ModelTraining
 from src.components.model.model_evaluation import ModelEvaluation
 
 FEATURES_PATH = (
-    "datas/experiments/features_z_score.parquet"
+    "datas/experiments/features_zscore_hour_preference.parquet"
 )
 
 LABELS_PATH = (
@@ -48,7 +48,7 @@ FEATURE_COLUMNS = [
 
     "country_change",
 
-    "z_score"
+    "hour_preference_score"
 ]
 
 load_dotenv()
@@ -98,6 +98,7 @@ def main():
     features = pd.read_parquet(
         FEATURES_PATH
     )
+    print(features.columns.tolist())
 
     labels = pd.read_parquet(
         LABELS_PATH
