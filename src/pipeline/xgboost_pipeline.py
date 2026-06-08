@@ -53,7 +53,7 @@ mlflow.set_experiment(
 
 
 FEATURES_PATH = (
-    "datas/experiments/features_zscore_hour_preference.parquet"
+    "datas/experiments/features_affinity_zscore_hour_preference.parquet"
 )
 
 LABELS_PATH = (
@@ -88,7 +88,9 @@ FEATURE_COLUMNS = [
 
     "z_score",
 
-    "hour_preference_score"
+    "hour_preference_score",
+
+    "merchant_affinity_score"
 ]
 
 
@@ -164,7 +166,7 @@ def main():
 
     with mlflow.start_run(
         run_name=
-        "xgboost_baseline_v1"
+        "xgboost_baseline_v2_5000user_affinity_zscore_hour_pref"
     ):
 
         mlflow.log_param(
