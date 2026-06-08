@@ -30,7 +30,9 @@ class UserPersona:
         device_stability: float
         avg_amount: float
         amount_variance: float
-        
+        hour_mean: int
+        hour_std: int
+
 PERSONA_TEMPLATES: Dict[str, UserPersona] = {
         "budget": UserPersona(
             spender_type="budget",
@@ -41,6 +43,8 @@ PERSONA_TEMPLATES: Dict[str, UserPersona] = {
             device_stability=0.92,
             avg_amount=22.0,
             amount_variance=8.0,
+            hour_mean=19,
+            hour_std=2
         ),
 
         "average": UserPersona(
@@ -52,6 +56,8 @@ PERSONA_TEMPLATES: Dict[str, UserPersona] = {
             device_stability=0.85,
             avg_amount=90.0,
             amount_variance=35.0,
+            hour_mean=14,
+            hour_std=4
         ),
 
         "luxury": UserPersona(
@@ -63,6 +69,8 @@ PERSONA_TEMPLATES: Dict[str, UserPersona] = {
             device_stability=0.75,
             avg_amount=420.0,
             amount_variance=180.0,
+            hour_mean=20,
+            hour_std=3
         ),
 
         "subscription": UserPersona(
@@ -74,6 +82,8 @@ PERSONA_TEMPLATES: Dict[str, UserPersona] = {
             device_stability=0.95,
             avg_amount=14.0,
             amount_variance=5.0,
+            hour_mean=22,
+            hour_std=2
         ),
     }
 
@@ -128,7 +138,7 @@ def merchant_category(merchant: str) -> str:
         return "standard"
 
 class TransactionSimulator:
-    def __init__(self, n_users=10):
+    def __init__(self, n_users=5000):
         
         try:
             self.redis_client = RedisClient().client
@@ -468,6 +478,7 @@ class User:
         ]
 
         self.shared_campaign_id = None
+        self.mimicry_level = None
 
     def known_device(self):
         return random.choice(self.devices) if self.devices else None
@@ -509,6 +520,23 @@ class User:
                 self.favorite_merchants.pop(0)
 
         return new_merchant
+    
+    def sample_target_hour(self):
+
+        hour = int(
+            random.gauss(
+                self.persona.hour_mean,
+                self.persona.hour_std
+            )
+        )
+
+        return max(
+            0,
+            min(
+                23,
+                hour
+            )
+        )
 
     def recent_transactions(self, seconds):
         cutoff = self.last_tx_time - timedelta(seconds=seconds)
@@ -543,15 +571,23 @@ class User:
             r = random.random()
 
             if r < 0.20:
+                self.mimicry_level = None
                 self.behavior_state = "CARD_TESTING_SLOW"
                 self.state_timer = random.randint(4, 10)
 
             elif r < 0.35:
+                self.mimicry_level = None
                 self.behavior_state = "ACCOUNT_TAKEOVER"
                 self.state_timer = random.randint(2, 5)
 
             elif r < 0.50:
                 self.behavior_state = "BEHAVIORAL_MIMICRY"
+
+                self.mimicry_level = random.choices(
+                    ["easy", "medium", "advanced"],
+                    weights=[40, 40, 20]
+                )[0]
+
                 self.state_timer = random.randint(3, 8)
 
             elif r < 0.60:
@@ -562,7 +598,11 @@ class User:
             self.state_timer -= 1
 
             if self.state_timer <= 0:
+
                 self.behavior_state = "NORMAL"
+
+                self.mimicry_level = None
+
 
     def schedule_next_tx(self, now):
 
@@ -591,6 +631,37 @@ class User:
             return
 
         self.next_tx_time = now + timedelta(minutes=gap_minutes)
+
+        if self.behavior_state == "BEHAVIORAL_MIMICRY":
+
+            follow_profile = (
+                random.random() < 0.70
+            )
+
+        else:
+
+            follow_profile = (
+                random.random() < 0.90
+            )
+
+        if follow_profile:
+
+            target_hour = (
+                self.sample_target_hour()
+            )
+
+            candidate = (
+                self.next_tx_time.replace(
+                    hour=target_hour,
+                    minute=random.randint(0,59),
+                    second=random.randint(0,59)
+                )
+            )
+
+            if candidate > now:
+
+                self.next_tx_time = candidate
+
 
     def generate_raw_tx(self, current_time):
         self._update_behavior_state(current_time)
@@ -755,26 +826,93 @@ class User:
             is_fraud = 1
 
         elif self.behavior_state == "BEHAVIORAL_MIMICRY":
-            amount = persona_amount(self.persona)
 
-            merchant = persona_merchant(self.persona)
-            mcat = merchant_category(merchant)
+            level = self.mimicry_level
 
-            device = self.known_device()
+            if level == "easy":
 
-            if random.random() < 0.15:
-                ip = self.register_ip()
-            else:
+                device = (
+                    self.known_device()
+                    if random.random() < 0.50
+                    else self.register_device()
+                )
+
+                ip = (
+                    self.known_ip()
+                    if random.random() < 0.50
+                    else self.register_ip()
+                )
+
+                merchant = persona_merchant(
+                    self.persona
+                )
+
+                amount = (
+                    persona_amount(self.persona)
+                    * random.uniform(1.2, 2.0)
+                )
+
+            elif level == "medium":
+
+                device = self.known_device()
+
+                ip = (
+                    self.known_ip()
+                    if random.random() < 0.80
+                    else self.register_ip()
+                )
+
+                merchant = random.choice(
+                    self.favorite_merchants
+                )
+
+                amount = persona_amount(
+                    self.persona
+                )
+
+            else:  # advanced
+
+                device = self.known_device()
+
                 ip = self.known_ip()
+
+                merchant = random.choice(
+                    self.favorite_merchants
+                )
+
+                amount = persona_amount(
+                    self.persona
+                )
+
+            mcat = merchant_category(
+                merchant
+            )
 
             country = self.home_country
 
             if mcat == "digital":
-                lat = self.home_lat + random.uniform(-1.0, 1.0)
-                lon = self.home_lon + random.uniform(-1.0, 1.0)
+
+                lat = (
+                    self.home_lat
+                    + random.uniform(-1.0, 1.0)
+                )
+
+                lon = (
+                    self.home_lon
+                    + random.uniform(-1.0, 1.0)
+                )
+
             else:
-                lat = self.home_lat + random.uniform(-0.08, 0.08)
-                lon = self.home_lon + random.uniform(-0.08, 0.08)
+
+                lat = (
+                    self.home_lat
+                    + random.uniform(-0.08, 0.08)
+                )
+
+                lon = (
+                    self.home_lon
+                    + random.uniform(-0.08, 0.08)
+                )
 
             fraud_type = "behavioral_mimicry"
             is_fraud = 1
@@ -841,7 +979,7 @@ def validate_simulator_contract(sim):
     logging.info("Simulator contract validation passed")
 
 if __name__ == "__main__":
-    sim = TransactionSimulator(n_users=10)
+    sim = TransactionSimulator(n_users=5000)
 
     validate_simulator_contract(sim)
 
