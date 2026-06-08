@@ -142,7 +142,11 @@ class ModelEvaluation:
                 review_rate
         }
 
-        return metrics
+        return (
+            metrics,
+            predictions,
+            probabilities
+        )
 
     def show_metrics(
         self,
@@ -239,4 +243,31 @@ class ModelEvaluation:
             importance_df.to_string(
                 index=False
             )
+        )
+
+    def save_predictions(
+        self,
+        tx_ids,
+        y_true,
+        predictions,
+        probabilities,
+        output_path
+    ):
+
+        prediction_df = pd.DataFrame(
+            {
+                "tx_id": tx_ids,
+                "prediction": predictions,
+                "probability": probabilities,
+                "is_fraud": y_true
+            }
+        )
+
+        prediction_df.to_parquet(
+            output_path,
+            index=False
+        )
+
+        print(
+            f"Predictions Saved -> {output_path}"
         )

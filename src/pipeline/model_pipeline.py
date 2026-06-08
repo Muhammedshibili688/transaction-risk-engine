@@ -11,7 +11,7 @@ from src.components.model.model_training import ModelTraining
 from src.components.model.model_evaluation import ModelEvaluation
 
 FEATURES_PATH = (
-    "datas/experiments/features_zscore_hour_preference.parquet"
+    "datas/experiments/features_affinity_zscore_hour_preference_device_affinity.parquet"
 )
 
 LABELS_PATH = (
@@ -48,7 +48,11 @@ FEATURE_COLUMNS = [
 
     "country_change",
 
-    "hour_preference_score"
+    "hour_preference_score",
+
+    "merchant_affinity_score",
+
+    "device_merchant_affinity_score"
 ]
 
 load_dotenv()
@@ -128,14 +132,21 @@ def main():
         "is_fraud"
     ]
 
+    tx_ids = df[
+        "tx_id"
+    ]
+
     (
         X_train,
         X_test,
         y_train,
-        y_test
+        y_test,
+        tx_train,
+        tx_test
     ) = train_test_split(
         X,
         y,
+        tx_ids,
         test_size=0.20,
         random_state=42,
         stratify=y
@@ -176,14 +187,24 @@ def main():
 
     evaluator = ModelEvaluation()
 
-    metrics = evaluator.evaluate(
+    metrics, predictions, probabilities = evaluator.evaluate(
         model,
         X_test_scaled,
         y_test
     )
 
+    evaluator.save_predictions(
+        tx_ids=tx_test,
+        y_true=y_test,
+        predictions=predictions,
+        probabilities=probabilities,
+        output_path=
+        "datas/predictions/"
+        "logreg_v2_affinity_zscore_hour_device_affinity.parquet"
+    )
+
     with mlflow.start_run(
-        run_name ="logistic_regression_v1"
+        run_name ="logistic_regression_v2_5000_user_affinity_zscire_hour_prefrence_device_affinity"
     ):
 
         mlflow.log_param(

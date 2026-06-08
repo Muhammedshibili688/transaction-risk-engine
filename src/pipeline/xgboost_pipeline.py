@@ -10,8 +10,6 @@ from sklearn.model_selection import (
 )
 
 from src.components.model.xgboost_training import XGBoostTraining
-
-
 from src.components.model.model_evaluation import ModelEvaluation
 
 
@@ -53,7 +51,7 @@ mlflow.set_experiment(
 
 
 FEATURES_PATH = (
-    "datas/experiments/features_affinity_zscore_hour_preference.parquet"
+    "datas/experiments/features_affinity_zscore_hour_preference_device_affinity.parquet"
 )
 
 LABELS_PATH = (
@@ -90,7 +88,9 @@ FEATURE_COLUMNS = [
 
     "hour_preference_score",
 
-    "merchant_affinity_score"
+    "merchant_affinity_score",
+
+    "device_merchant_affinity_score"
 ]
 
 
@@ -129,14 +129,21 @@ def main():
         "is_fraud"
     ]
 
+    tx_ids = df[
+        "tx_id"
+    ]
+
     (
         X_train,
         X_test,
         y_train,
-        y_test
+        y_test,
+        tx_train,
+        tx_test
     ) = train_test_split(
         X,
         y,
+        tx_ids,
         test_size=0.20,
         random_state=42,
         stratify=y
@@ -158,15 +165,25 @@ def main():
 
     evaluator = ModelEvaluation()
 
-    metrics = evaluator.evaluate(
+    metrics, predictions, probabilities = evaluator.evaluate(
         model,
         X_test,
         y_test
     )
 
+    evaluator.save_predictions(
+        tx_ids=tx_test,
+        y_true=y_test,
+        predictions=predictions,
+        probabilities=probabilities,
+        output_path=
+        "datas/predictions/"
+        "xgboost_v3_affinity_zscore_hour_device_affinity.parquet"
+    )
+
     with mlflow.start_run(
         run_name=
-        "xgboost_baseline_v2_5000user_affinity_zscore_hour_pref"
+        "xgboost_baseline_v2_5000user_affinity_zscore_hour_pref_device_affinity"
     ):
 
         mlflow.log_param(
