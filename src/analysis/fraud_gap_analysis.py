@@ -13,7 +13,9 @@ FEATURE_COLUMNS = [
     "transaction_count_1h",
     "transaction_count_24h",
     "merchant_repeat_count",
-    "small_amount_burst"
+    "small_amount_burst",
+    "z_score",
+    "merchant_affinity_score"
 ]
 
 PREDICTIONS_PATH = (
@@ -26,7 +28,7 @@ LABELS_PATH = (
 )
 
 FATURES_PATH = (
-    "datas/features/features.parquet"
+    "datas/experiments/features_affinity_zscore_hour_preference.parquet"
     )
 
 REPORT_DIR = "reports"
@@ -79,7 +81,6 @@ def build_analysis_frame(
             )
     )
     
-    print(df.columns.tolist())
 
     print(df[
         [
@@ -97,6 +98,17 @@ def build_analysis_frame(
     else:
         raise ValueError(
             "Ground truth label column not found"
+        )
+    
+    if "fraud_type_label" in df.columns:
+        df["fraud_type"] = df["fraud_type_label"]
+
+    elif "fraud_type" in df.columns:
+        pass
+
+    else:
+        raise ValueError(
+            "fraud_type column not found"
         )
 
     logging.info(
@@ -415,6 +427,14 @@ def main():
         features
     )
     print(df.columns.tolist())
+
+    print(df.shape)
+
+    print(df["is_fraud"].value_counts())
+
+    print(df["prediction"].value_counts())
+
+    print(df["fraud_type"].value_counts(dropna=False).head())
 
     fraud_type_summary = (
         fraud_type_recall(df)

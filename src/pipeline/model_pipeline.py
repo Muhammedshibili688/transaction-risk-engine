@@ -57,44 +57,44 @@ FEATURE_COLUMNS = [
 
 load_dotenv()
 
-repo_owner = os.getenv(
-    "DAGSHUB_USERNAME"
-)
+# repo_owner = os.getenv(
+#     "DAGSHUB_USERNAME"
+# )
 
-repo_name = os.getenv(
-    "DAGSHUB_REPO_NAME"
-)
+# repo_name = os.getenv(
+#     "DAGSHUB_REPO_NAME"
+# )
 
-mlflow_password = os.getenv(
-    "MLFLOW_TRACKING_PASSWORD"
-)
+# mlflow_password = os.getenv(
+#     "MLFLOW_TRACKING_PASSWORD"
+# )
 
-os.environ[
-    "MLFLOW_TRACKING_USERNAME"
-] = repo_owner
+# os.environ[
+#     "MLFLOW_TRACKING_USERNAME"
+# ] = repo_owner
 
-os.environ[
-    "MLFLOW_TRACKING_PASSWORD"
-] = mlflow_password
+# os.environ[
+#     "MLFLOW_TRACKING_PASSWORD"
+# ] = mlflow_password
 
-dagshub.init(
-    repo_owner=repo_owner,
-    repo_name=repo_name,
-    mlflow=True
-)
+# dagshub.init(
+#     repo_owner=repo_owner,
+#     repo_name=repo_name,
+#     mlflow=True
+# )
 
-mlflow.set_tracking_uri(
-    f"https://dagshub.com/{repo_owner}/{repo_name}.mlflow"
-)
+# mlflow.set_tracking_uri(
+#     f"https://dagshub.com/{repo_owner}/{repo_name}.mlflow"
+# )
 
-mlflow.set_experiment(
-    "Fraud_Model_Training"
-)
+# mlflow.set_experiment(
+#     "Fraud_Model_Training"
+# )
 
-print(
-    "Tracking URI:",
-    mlflow.get_tracking_uri()
-)
+# print(
+#     "Tracking URI:",
+#     mlflow.get_tracking_uri()
+# )
 
 
 def main():
@@ -200,57 +200,57 @@ def main():
         probabilities=probabilities,
         output_path=
         "datas/predictions/"
-        "logreg_v2_affinity_zscore_hour_device_affinity.parquet"
+        "logreg_v5_affinity_zscore_hour_device_affinity.parquet"
     )
 
-    with mlflow.start_run(
-        run_name ="logistic_regression_v2_5000_user_affinity_zscire_hour_prefrence_device_affinity"
-    ):
+    # with mlflow.start_run(
+    #     run_name ="logistic_regression_v5_affinity_zscire_hour_prefrence_device_affinity"
+    # ):
 
-        mlflow.log_param(
-            "model_type",
-            "logistic_regression"
-        )
+    #     mlflow.log_param(
+    #         "model_type",
+    #         "logistic_regression"
+    #     )
 
-        mlflow.log_param(
-            "best_c",
-            best_params["C"]
-        )
+    #     mlflow.log_param(
+    #         "best_c",
+    #         best_params["C"]
+    #     )
 
-        mlflow.log_param(
-            "class_weight",
-            "balanced"
-        )
+    #     mlflow.log_param(
+    #         "class_weight",
+    #         "balanced"
+    #     )
 
-        mlflow.log_param(
-            "feature_count",
-            len(FEATURE_COLUMNS)
-        )
+    #     mlflow.log_param(
+    #         "feature_count",
+    #         len(FEATURE_COLUMNS)
+    #     )
 
-        mlflow.log_param(
-            "features",
-            ",".join(FEATURE_COLUMNS)
-        )
+    #     mlflow.log_param(
+    #         "features",
+    #         ",".join(FEATURE_COLUMNS)
+    #     )
 
-        for metric_name, metric_value in metrics.items():
+    #     for metric_name, metric_value in metrics.items():
 
-            if isinstance(
-                metric_value,
-                (int, float)
-            ):
+    #         if isinstance(
+    #             metric_value,
+    #             (int, float)
+    #         ):
 
-                mlflow.log_metric(
-                    metric_name,
-                    metric_value
-                )
+    #             mlflow.log_metric(
+    #                 metric_name,
+    #                 metric_value
+    #             )
 
-        mlflow.log_artifact(
-            MODEL_PATH
-        )
+    #     mlflow.log_artifact(
+    #         MODEL_PATH
+    #     )
 
-        mlflow.log_artifact(
-            SCALER_PATH
-        )
+    #     mlflow.log_artifact(
+    #         SCALER_PATH
+    #     )
 
     evaluator.show_metrics(
         metrics

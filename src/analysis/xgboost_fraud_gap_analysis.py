@@ -10,7 +10,7 @@ from sklearn.metrics import (
 
 
 FEATURES_PATH = (
-    "datas/experiments/features_zscore_hour_preference.parquet"
+    "datas/experiments/features_affinity_zscore_hour_preference_device_affinity.parquet"
 )
 
 LABELS_PATH = (
@@ -45,7 +45,11 @@ FEATURE_COLUMNS = [
 
     "z_score",
 
-    "hour_preference_score"
+    "hour_preference_score",
+    
+    "merchant_affinity_score",
+
+    "device_merchant_affinity_score"
 ]
 
 
