@@ -1,3 +1,4 @@
+import random
 from datetime import datetime, timedelta
 from src.configuration.redis_connection import RedisClient
 from src.logger import logging
@@ -136,17 +137,6 @@ class OnlineFeatureStore:
             )
         }
     
-    def get_velocity_counts(self, user_id, timestamp):
-        key = self.velocity_key(user_id)
-
-        ts = timestamp.timestamp()
-
-        return {
-            "transaction_count_1m"  : self.redis.zcount(key, ts - 60, ts),
-            "transaction_count_5m"  : self.redis.zcount(key, ts - 300, ts),
-            "transaction_count_1h"  : self.redis.zcount(key, ts - 3600, ts),
-            "transaction_count_24h" : self.redis.zcount(key, ts - 86400, ts),
-        }
 
     def get_small_amount_burst(self, user_id, timestamp):
         key = self.burst_key(user_id)
@@ -165,7 +155,9 @@ class OnlineFeatureStore:
     # =================================================
 
     def update_state(self, tx, prior_state):
+
         user_id = tx["user_id"]
+        
         amount = tx["amount_usd"]
         timestamp = tx["timestamp"]
 
@@ -192,44 +184,44 @@ class OnlineFeatureStore:
         # -----------------------------
         # velocity counters
         # -----------------------------
-        def update_window(count, start_ts, seconds):
-            if not start_ts:
-                return 1, curr_dt.isoformat()
+        # def update_window(count, start_ts, seconds):
+        #     if not start_ts:
+        #         return 1, curr_dt.isoformat()
 
-            start_dt = datetime.fromisoformat(start_ts)
+        #     start_dt = datetime.fromisoformat(start_ts)
 
-            elapsed = (
-                curr_dt - start_dt
-            ).total_seconds()
+        #     elapsed = (
+        #         curr_dt - start_dt
+        #     ).total_seconds()
 
-            if elapsed > seconds:
-                return 1, curr_dt.isoformat()
+        #     if elapsed > seconds:
+        #         return 1, curr_dt.isoformat()
 
-            return count + 1, start_ts
+        #     return count + 1, start_ts
 
-        tx_count_1m, window_1m_start = update_window(
-            state["tx_count_1m"],
-            state["window_1m_start"],
-            60
-        )
+        # tx_count_1m, window_1m_start = update_window(
+        #     state["tx_count_1m"],
+        #     state["window_1m_start"],
+        #     60
+        # )
 
-        tx_count_5m, window_5m_start = update_window(
-            state["tx_count_5m"],
-            state["window_5m_start"],
-            300
-        )
+        # tx_count_5m, window_5m_start = update_window(
+        #     state["tx_count_5m"],
+        #     state["window_5m_start"],
+        #     300
+        # )
 
-        tx_count_1h, window_1h_start = update_window(
-            state["tx_count_1h"],
-            state["window_1h_start"],
-            3600
-        )
+        # tx_count_1h, window_1h_start = update_window(
+        #     state["tx_count_1h"],
+        #     state["window_1h_start"],
+        #     3600
+        # )
 
-        tx_count_24h, window_24h_start = update_window(
-            state["tx_count_24h"],
-            state["window_24h_start"],
-            86400
-        )
+        # tx_count_24h, window_24h_start = update_window(
+        #     state["tx_count_24h"],
+        #     state["window_24h_start"],
+        #     86400
+        # )
 
         # -----------------------------
         # small amount burst
@@ -297,6 +289,23 @@ class OnlineFeatureStore:
             tx["ip"]
         )
 
+        velocity_key = self.velocity_key(user_id)
+
+        pipe.zadd(
+            velocity_key,
+            {
+                tx["tx_id"]: curr_dt.timestamp()
+            }
+        )
+
+        if random.random() < 0.01:
+
+            pipe.zremrangebyscore(
+                velocity_key,
+                0,
+                curr_dt.timestamp() - 86400
+            )
+
         # user state
         pipe.hset(
             user_key,
@@ -308,16 +317,6 @@ class OnlineFeatureStore:
                 "last_lat": tx["lat"],
                 "last_lon": tx["lon"],
                 "last_timestamp": timestamp,
-
-                "tx_count_1m": tx_count_1m,
-                "tx_count_5m": tx_count_5m,
-                "tx_count_1h": tx_count_1h,
-                "tx_count_24h": tx_count_24h,
-
-                "window_1m_start": window_1m_start,
-                "window_5m_start": window_5m_start,
-                "window_1h_start": window_1h_start,
-                "window_24h_start": window_24h_start,
 
                 "small_amount_burst_count":
                     small_amount_burst_count,
@@ -367,12 +366,47 @@ class OnlineFeatureStore:
             ip
         )
 
+        ts = datetime.fromisoformat(
+            tx["timestamp"]
+        ).timestamp()
+
+        velocity_key = self.velocity_key(user_id)
+
+        pipe.zcount(
+            velocity_key,
+            ts - 60,
+            ts
+        )
+
+        pipe.zcount(
+            velocity_key,
+            ts - 300,
+            ts
+        )
+
+        pipe.zcount(
+            velocity_key,
+            ts - 3600,
+            ts
+        )
+
+        pipe.zcount(
+            velocity_key,
+            ts - 86400,
+            ts
+        )
+
         results = pipe.execute()
 
         user_raw = results[0]
         country_raw = results[1]
         known_device = results[2]
         known_ip = results[3]
+
+        tx_count_1m = results[4]
+        tx_count_5m = results[5]
+        tx_count_1h = results[6]
+        tx_count_24h = results[7]
 
         if not user_raw:
             user_state = {
@@ -383,21 +417,16 @@ class OnlineFeatureStore:
                 "last_lon": None,
                 "last_timestamp": None,
 
-                "tx_count_1m": 0,
-                "tx_count_5m": 0,
-                "tx_count_1h": 0,
-                "tx_count_24h": 0,
+                "tx_count_1m": tx_count_1m,
+                "tx_count_5m": tx_count_5m,
+                "tx_count_1h": tx_count_1h,
+                "tx_count_24h": tx_count_24h,
 
                 "small_amount_burst_count": 0,
                 "merchant_repeat_count": 0,
 
                 "distinct_devices_24h": 0,
                 "distinct_ips_24h": 0,
-
-                "window_1m_start": None,
-                "window_5m_start": None,
-                "window_1h_start": None,
-                "window_24h_start": None,
 
                 "last_merchant": None,
             }
@@ -411,10 +440,10 @@ class OnlineFeatureStore:
                 "last_lon": float(user_raw["last_lon"]) if user_raw.get("last_lon") else None,
                 "last_timestamp": user_raw.get("last_timestamp"),
 
-                "tx_count_1m": int(user_raw.get("tx_count_1m", 0)),
-                "tx_count_5m": int(user_raw.get("tx_count_5m", 0)),
-                "tx_count_1h": int(user_raw.get("tx_count_1h", 0)),
-                "tx_count_24h": int(user_raw.get("tx_count_24h", 0)),
+                "tx_count_1m": tx_count_1m,
+                "tx_count_5m": tx_count_5m,
+                "tx_count_1h": tx_count_1h,
+                "tx_count_24h": tx_count_24h,
 
                 "small_amount_burst_count": int(
                     user_raw.get("small_amount_burst_count", 0)
@@ -432,11 +461,6 @@ class OnlineFeatureStore:
                     user_raw.get("distinct_ips_24h", 0)
                 ),
 
-                "window_1m_start": user_raw.get("window_1m_start"),
-                "window_5m_start": user_raw.get("window_5m_start"),
-                "window_1h_start": user_raw.get("window_1h_start"),
-                "window_24h_start": user_raw.get("window_24h_start"),
-
                 "last_merchant": user_raw.get("last_merchant"),
             }
 
@@ -451,9 +475,10 @@ class OnlineFeatureStore:
                 "tx_count": int(country_raw.get("tx_count", 0))
             }
 
+
         return {
             "user": user_state,
             "known_device": known_device,
             "known_ip": known_ip,
-            "country": country_state,
+            "country": country_state
         }

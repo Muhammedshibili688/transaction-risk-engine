@@ -1,6 +1,7 @@
 import json
 import os
 import time
+from datetime import datetime
 import random
 from dotenv import load_dotenv
 load_dotenv()
@@ -40,8 +41,8 @@ class ScoringService:
         t0 = time.time()
 
         state = self.feature_store.fetch_full_state(tx)
-        t1 = time.time()
 
+        t1 = time.time()
 
         enriched_tx = self.feature_engineer.compute(
             tx,
@@ -77,14 +78,6 @@ class ScoringService:
             state
         )
         t4 = time.time()
-
-        if random.random() < 0.01:
-            logging.info(
-                f"fetch={t1-t0:.4f}s "
-                f"compute={t2-t1:.4f}s "
-                f"score={t3-t2:.4f}s "
-                f"update={t4-t3:.4f}s"
-            )
 
         event = {
             "features": processed_record,

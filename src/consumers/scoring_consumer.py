@@ -45,36 +45,40 @@ def main(config_path, consumer_name):
         f"Consumer started: {consumer_name}"
     )
 
-    while True:
-        messages = redis_client.xreadgroup(
-            GROUP_NAME,
-            consumer_name,
-            {STREAM_NAME: ">"},
-            count=100,
-            block=2000
+    try:
+        while True:
+            messages = redis_client.xreadgroup(
+                GROUP_NAME,
+                consumer_name,
+                {STREAM_NAME: ">"},
+                count=100,
+                block=2000
+            )
+
+            if not messages:
+                continue
+
+            for _, events in messages:
+                for msg_id, payload in events:
+                    try:
+                        tx = json.loads(payload["data"])
+
+                        scoring_service.process_transaction(tx)
+
+                        redis_client.xack(
+                            STREAM_NAME,
+                            GROUP_NAME,
+                            msg_id
+                        )
+
+                    except Exception as e:
+                        logging.exception(
+                            f"Failed processing transaction", e
+                        )
+    except KeyboardInterrupt:
+        logging.info(
+            f"Consumer stopped: {consumer_name}"
         )
-
-        if not messages:
-            continue
-
-        for _, events in messages:
-            for msg_id, payload in events:
-                try:
-                    tx = json.loads(payload["data"])
-
-                    scoring_service.process_transaction(tx)
-
-                    redis_client.xack(
-                        STREAM_NAME,
-                        GROUP_NAME,
-                        msg_id
-                    )
-
-                except Exception:
-                    logging.exception(
-                        "Failed processing transaction"
-                    )
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
