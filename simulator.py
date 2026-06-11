@@ -406,12 +406,17 @@ class TransactionSimulator:
                         seconds=random.randint(10, 120)
                     )
 
-                    user = random.choice(self.users)
+                    ready_users = [
+                        u for u in self.users
+                        if u.should_transact(self.sim_clock)
+                    ]
 
-                    if not user.should_transact(self.sim_clock):
-                        continue
+                    for user in ready_users:
+                        tx = user.generate_raw_tx(self.sim_clock)
 
-                    tx = user.generate_raw_tx(self.sim_clock)
+                        if tx:
+                            self.stream_tx(tx)
+                            self._save_local(tx)
 
                     if tx:
                         self.stream_tx(tx)
@@ -479,6 +484,7 @@ class User:
 
         self.shared_campaign_id = None
         self.mimicry_level = None
+        self.card_test_remaining = 0
 
     def known_device(self):
         return random.choice(self.devices) if self.devices else None
@@ -559,42 +565,11 @@ class User:
             self.base_risk * risk_multiplier
         )
 
-        if random.random() > effective_risk:
-            if random.random() < 0.08:
-                self.behavior_state = "WEIRD_LEGIT"
-                self.state_timer = random.randint(2, 6)
-            else:
-                self.behavior_state = "NORMAL"
-            return
+        # ------------------------------------------------
+        # already inside an attack / special behavior
+        # ------------------------------------------------
+        if self.behavior_state != "NORMAL":
 
-        if self.behavior_state == "NORMAL":
-            r = random.random()
-
-            if r < 0.20:
-                self.mimicry_level = None
-                self.behavior_state = "CARD_TESTING_SLOW"
-                self.state_timer = random.randint(4, 10)
-
-            elif r < 0.35:
-                self.mimicry_level = None
-                self.behavior_state = "ACCOUNT_TAKEOVER"
-                self.state_timer = random.randint(2, 5)
-
-            elif r < 0.50:
-                self.behavior_state = "BEHAVIORAL_MIMICRY"
-
-                self.mimicry_level = random.choices(
-                    ["easy", "medium", "advanced"],
-                    weights=[40, 40, 20]
-                )[0]
-
-                self.state_timer = random.randint(3, 8)
-
-            elif r < 0.60:
-                self.behavior_state = "ADAPTIVE_ATTACK"
-                self.state_timer = random.randint(3, 7)
-
-        else:
             self.state_timer -= 1
 
             if self.state_timer <= 0:
@@ -602,6 +577,50 @@ class User:
                 self.behavior_state = "NORMAL"
 
                 self.mimicry_level = None
+
+            return
+
+        # ------------------------------------------------
+        # only NORMAL users can enter new states
+        # ------------------------------------------------
+
+        if random.random() > effective_risk:
+            if random.random() < 0.08:
+                self.behavior_state = "WEIRD_LEGIT"
+                self.state_timer = random.randint(2, 6)
+    
+            return
+
+        r = random.random()
+
+        if r < 0.20:
+            self.mimicry_level = None
+            self.behavior_state = "CARD_TESTING_SLOW"
+
+            self.card_test_remaining = random.randint(10, 30)
+            self.state_timer = random.randint(4, 10)
+
+        elif r < 0.35:
+            self.mimicry_level = None
+            self.behavior_state = "ACCOUNT_TAKEOVER"
+            self.state_timer = random.randint(2, 5)
+
+        elif r < 0.50:
+            self.behavior_state = "BEHAVIORAL_MIMICRY"
+
+            self.mimicry_level = random.choices(
+                ["easy", "medium", "advanced"],
+                 weights=[40, 40, 20]
+            )[0]
+
+            self.state_timer = random.randint(3, 8)
+
+        elif r < 0.60:
+            self.behavior_state = "ADAPTIVE_ATTACK"
+            self.state_timer = random.randint(3, 7)
+
+        else:
+            return
 
 
     def schedule_next_tx(self, now):
@@ -613,8 +632,30 @@ class User:
             gap_minutes = random.randint(10, 120)
 
         elif self.behavior_state == "CARD_TESTING_SLOW":
-            gap_seconds = random.randint(20, 180)
-            self.next_tx_time = now + timedelta(seconds=gap_seconds)
+            
+            if random.random() < 0.0001:
+                logging.info(
+                    f"{self.user_id} remaining={self.card_test_remaining}"
+                )
+
+            gap_seconds = random.randint(
+                5,
+                30
+            )
+
+            self.next_tx_time = (
+                now +
+                timedelta(seconds=gap_seconds)
+            )
+
+            self.card_test_remaining -= 1
+
+            if self.card_test_remaining <= 0:
+
+                self.behavior_state = "NORMAL"
+
+                self.card_test_remaining = 0
+
             return
 
         elif self.behavior_state == "ACCOUNT_TAKEOVER":
@@ -626,8 +667,16 @@ class User:
             gap_minutes = random.randint(20, 180)
 
         else:  # adaptive attack
-            gap_seconds = random.randint(10, 120)
-            self.next_tx_time = now + timedelta(seconds=gap_seconds)
+            gap_seconds = random.randint(
+                10,
+                60
+            )
+
+            self.next_tx_time = (
+                now +
+                timedelta(seconds=gap_seconds)
+            )
+
             return
 
         self.next_tx_time = now + timedelta(minutes=gap_minutes)
@@ -754,25 +803,28 @@ class User:
             merchant = self.choose_merchant()
 
         elif self.behavior_state == "CARD_TESTING_SLOW":
-            amount = round(random.uniform(0.5, 19.99), 2)
 
-            device = (
-                self.known_device()
-                if random.random() < 0.8
-                else self.register_device()
+            amount = round(
+                random.uniform(
+                    0.5,
+                    5.0
+                ),
+                2
             )
 
-            ip = (
-                self.known_ip()
-                if random.random() < 0.8
-                else self.register_ip()
-            )
+            device = self.known_device()
+            ip = self.known_ip()
+
+            if random.random() < 0.1:
+                ip = self.register_ip()
 
             country = self.home_country
             lat = self.home_lat
             lon = self.home_lon
-            merchant = random.choice(MERCHANTS["digital"])
-
+            self.card_testing_merchant = random.choice(
+                MERCHANTS["digital"]
+            )
+            merchant = self.card_testing_merchant
             fraud_type = "card_testing"
             is_fraud = 1
 
