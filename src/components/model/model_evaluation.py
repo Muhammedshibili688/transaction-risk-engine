@@ -11,6 +11,7 @@ from sklearn.metrics import (
     average_precision_score
 )
 
+threshold = 0.4
 
 class ModelEvaluation:
 
@@ -39,17 +40,21 @@ class ModelEvaluation:
         y_test
     ):
 
-        predictions = (
-            model.predict(
-                X_test
-            )
-        )
+        # predictions = (
+        #     model.predict(
+        #         X_test
+        #     )
+        # )
 
         probabilities = (
             model.predict_proba(
                 X_test
             )[:,1]
         )
+
+        predictions = (
+            probabilities >= threshold
+        ).astype(int)
 
         accuracy = (
             accuracy_score(

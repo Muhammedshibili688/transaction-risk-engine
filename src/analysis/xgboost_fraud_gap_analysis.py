@@ -10,7 +10,7 @@ from sklearn.metrics import (
 
 
 FEATURES_PATH = (
-    "datas/experiments/features_affinity_zscore_hour_preference_device_affinity.parquet"
+    "datas/experiments/features_merchant_transition_score_best_features.parquet"
 )
 
 LABELS_PATH = (
@@ -49,7 +49,9 @@ FEATURE_COLUMNS = [
     
     "merchant_affinity_score",
 
-    "device_merchant_affinity_score"
+    "device_merchant_affinity_score",
+
+    "merchant_transition_score"
 ]
 
 
@@ -88,192 +90,86 @@ proba = model.predict_proba(
     X
 )[:, 1]
 
-prediction = (
-    proba >= 0.50
-).astype(int)
-
-df["prediction"] = prediction
 df["fraud_probability"] = proba
 
-print("\n")
-print("=" * 80)
-print("OVERALL METRICS")
-print("=" * 80)
-
-print(
-    "Accuracy :",
-    round(
-        accuracy_score(
-            y,
-            prediction
-        ),
-        4
-    )
-)
-
-print(
-    "Precision:",
-    round(
-        precision_score(
-            y,
-            prediction
-        ),
-        4
-    )
-)
-
-print(
-    "Recall   :",
-    round(
-        recall_score(
-            y,
-            prediction
-        ),
-        4
-    )
-)
-
-print(
-    "F1       :",
-    round(
-        f1_score(
-            y,
-            prediction
-        ),
-        4
-    )
-)
-
-print("\n")
-print("=" * 80)
-print("FRAUD TYPE RECALL")
-print("=" * 80)
-
-results = []
-
-for fraud_type in sorted(
-    df["fraud_type"]
-    .dropna()
-    .unique()
-):
-
-    subset = df[
-        df["fraud_type"]
-        == fraud_type
-    ]
-
-    total_frauds = len(
-        subset
-    )
-
-    caught_frauds = (
-        subset[
-            "prediction"
-        ]
-        .sum()
-    )
-
-    missed_frauds = (
-        total_frauds
-        -
-        caught_frauds
-    )
-
-    recall = (
-        caught_frauds
-        /
-        total_frauds
-    )
-
-    results.append(
-        {
-            "fraud_type":
-            fraud_type,
-
-            "total_frauds":
-            total_frauds,
-
-            "caught_frauds":
-            caught_frauds,
-
-            "missed_frauds":
-            missed_frauds,
-
-            "recall":
-            round(
-                recall,
-                4
-            )
-        }
-    )
-
-results = pd.DataFrame(
-    results
-)
-
-print(
-    results.to_string(
-        index=False
-    )
-)
-
-print("\n")
-print("=" * 80)
-print("MOST MISSED FRAUD TYPES")
-print("=" * 80)
-
-print(
-    results[
-        [
-            "fraud_type",
-            "missed_frauds"
-        ]
-    ]
-    .sort_values(
-        "missed_frauds",
-        ascending=False
-    )
-    .to_string(
-        index=False
-    )
-)
-
-print("\n")
-print("=" * 80)
-print("FRAUD PROBABILITY BY TYPE")
-print("=" * 80)
-
-probability_summary = (
-    df[
-        df["is_fraud"] == 1
-    ]
-    .groupby(
-        "fraud_type"
-    )[
-        "fraud_probability"
-    ]
-    .agg(
-        [
-            "mean",
-            "median"
-        ]
-    )
-    .reset_index()
-)
-
-probability_summary.columns = [
-
-    "fraud_type",
-
-    "mean_probability",
-
-    "median_probability"
+THRESHOLDS = [
+    0.30,
+    0.35,
+    0.40,
+    0.45,
+    0.50,
+    0.55,
+    0.60
 ]
 
-print(
-    probability_summary
-    .round(4)
-    .to_string(
-        index=False
+print("\n")
+print("=" * 100)
+print("THRESHOLD ANALYSIS")
+print("=" * 100)
+
+for threshold in THRESHOLDS:
+
+    prediction = (
+        proba >= threshold
+    ).astype(int)
+
+    accuracy = accuracy_score(
+        y,
+        prediction
     )
-)
+
+    precision = precision_score(
+        y,
+        prediction
+    )
+
+    recall = recall_score(
+        y,
+        prediction
+    )
+
+    f1 = f1_score(
+        y,
+        prediction
+    )
+
+    review_rate = (
+        prediction.mean()
+    )
+
+    print(
+        f"Threshold={threshold:.2f} | "
+        f"Precision={precision:.4f} | "
+        f"Recall={recall:.4f} | "
+        f"F1={f1:.4f} | "
+        f"ReviewRate={review_rate:.4f}"
+    )
+
+
+print("\n")
+print("=" * 100)
+print("BEHAVIORAL MIMICRY RECALL")
+print("=" * 100)
+
+mimicry = df[
+    df["fraud_type"]
+    ==
+    "behavioral_mimicry"
+]
+
+
+for threshold in THRESHOLDS:
+
+    prediction = (
+        mimicry[
+            "fraud_probability"
+        ]
+        >= threshold
+    ).astype(int)
+
+    recall = prediction.mean()
+
+    print(
+        f"Threshold={threshold:.2f} | "
+        f"Mimicry Recall={recall:.4f}"
+    )
