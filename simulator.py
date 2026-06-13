@@ -477,10 +477,35 @@ class User:
         self.behavior_state = "NORMAL"
         self.state_timer = 0
 
+        self.last_merchant = None
+
         self.favorite_merchants = [
             persona_merchant(self.persona)
             for _ in range(3)
         ]
+
+        self.transition_map = {
+            self.favorite_merchants[i]:
+                self.favorite_merchants[
+                    (i + 1)
+                    % len(self.favorite_merchants)
+                ]
+            for i in range(
+                len(self.favorite_merchants)
+            )
+        }
+
+        self.morning_merchant = (
+            self.favorite_merchants[0]
+        )
+
+        self.afternoon_merchant = (
+            self.favorite_merchants[1]
+        )
+
+        self.night_merchant = (
+            self.favorite_merchants[2]
+        )
 
         self.shared_campaign_id = None
         self.mimicry_level = None
@@ -513,19 +538,36 @@ class User:
 
         return ip
     
-    def choose_merchant(self):
+    def choose_merchant(self, now):
+
+        if (
+            self.last_merchant is not None
+            and random.random() < 0.70
+        ):
+
+            return self.transition_map.get(
+                self.last_merchant,
+                random.choice(
+                    self.favorite_merchants
+                )
+            )
+
+        hour = now.hour
+
         if random.random() < 0.80:
-            return random.choice(self.favorite_merchants)
 
-        new_merchant = persona_merchant(self.persona)
+            if 6 <= hour < 12:
+                return self.morning_merchant
 
-        if random.random() < 0.20:
-            self.favorite_merchants.append(new_merchant)
+            elif 12 <= hour < 18:
+                return self.afternoon_merchant
 
-            if len(self.favorite_merchants) > 5:
-                self.favorite_merchants.pop(0)
+            else:
+                return self.night_merchant
 
-        return new_merchant
+        return random.choice(
+            self.favorite_merchants
+        )
     
     def sample_target_hour(self):
 
@@ -632,7 +674,7 @@ class User:
             gap_minutes = random.randint(10, 120)
 
         elif self.behavior_state == "CARD_TESTING_SLOW":
-            
+
             if random.random() < 0.0001:
                 logging.info(
                     f"{self.user_id} remaining={self.card_test_remaining}"
@@ -713,16 +755,8 @@ class User:
 
 
     def generate_raw_tx(self, current_time):
+
         self._update_behavior_state(current_time)
-        
-
-        # gap = random.randint(10, 600)
-
-        # if self.behavior_state == "CARD_TESTING_SLOW":
-        #     gap = random.randint(300, 7200)
-
-        # elif self.behavior_state == "ADAPTIVE_ATTACK":
-        #     gap = random.randint(120, 1800)
 
         now = current_time
         self.last_tx_time = now
@@ -741,7 +775,7 @@ class User:
 
             ip = self.known_ip()
 
-            merchant = self.choose_merchant()
+            merchant = self.choose_merchant(now)
 
             mcat = merchant_category(merchant)
 
@@ -800,7 +834,7 @@ class User:
                     else self.known_ip()
                 )
 
-            merchant = self.choose_merchant()
+            merchant = self.choose_merchant(now)
 
         elif self.behavior_state == "CARD_TESTING_SLOW":
 
@@ -928,13 +962,45 @@ class User:
 
                 ip = self.known_ip()
 
-                merchant = random.choice(
-                    self.favorite_merchants
-                )
-
                 amount = persona_amount(
                     self.persona
                 )
+
+                if (
+                    self.last_merchant
+                    and random.random() < 0.70
+                ):
+
+                    merchant = (
+                        self.transition_map.get(
+                            self.last_merchant,
+                            random.choice(
+                                self.favorite_merchants
+                            )
+                        )
+                    )
+
+                else:
+
+                    hour = now.hour
+
+                    if 6 <= hour < 12:
+
+                        merchant = (
+                            self.morning_merchant
+                        )
+
+                    elif 12 <= hour < 18:
+
+                        merchant = (
+                            self.afternoon_merchant
+                        )
+
+                    else:
+
+                        merchant = (
+                            self.night_merchant
+                        )
 
             mcat = merchant_category(
                 merchant
@@ -991,6 +1057,8 @@ class User:
 
             fraud_type = "card_testing"
             is_fraud = 1
+
+        self.last_merchant = merchant
 
         self.transactions.append({
             "timestamp": now,
