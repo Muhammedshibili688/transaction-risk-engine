@@ -30,6 +30,11 @@ logs/
 __pycache__/
 *.pyc
 
+mlruns/
+experiments/
+tmp/
+__pycache__/
+
 # Distribution / packaging
 .Python
 build/
