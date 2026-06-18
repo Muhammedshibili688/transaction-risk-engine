@@ -34,7 +34,8 @@ class OnlineFeatureEngineer:
 
         enriched.update(
             FeatureDefinitions.behavioral_features(
-                user
+                tx,
+                state
             )
         )
 

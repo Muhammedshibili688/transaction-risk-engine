@@ -156,6 +156,40 @@ class FeatureDefinitions:
             else 1.0
         )
 
+        count = user_state["tx_count"]
+
+        amount_sum = user_state[
+            "amount_sum"
+        ]
+
+        amount_sum_sq = user_state[
+            "amount_sum_sq"
+        ]
+
+        if count < 2:
+            z_score = 0.0
+
+        else:
+            mean = amount_sum / count
+
+            variance = (
+                amount_sum_sq / count
+            ) - (mean * mean)
+
+            variance = max(
+                variance,
+                1e-6
+            )
+
+            std = variance ** 0.5
+
+            z_score = (
+                tx["amount_usd"]
+                - mean
+            ) / std
+
+    
+
         return {
             "amount_ratio":
                 round(amount_ratio, 2),
@@ -164,18 +198,128 @@ class FeatureDefinitions:
                 round(country_avg, 2),
 
             "user_country_ratio":
-                round(
-                    user_country_ratio,
-                    2
-                )
+                round(user_country_ratio,2),
+
+            "z_score":round(z_score, 4)
         }
 
     @staticmethod
     def behavioral_features(
-        user_state
+        tx,
+        state
     ):
 
+        user_state = state["user"]
+
+        merchant_counts = state["merchant_counts"]
+
+        hour_counts = state["hour_counts"]
+
+        device_merchant_counts = (
+            state["device_merchant_counts"]
+        )
+
+        transition_counts = (
+            state["transition_counts"]
+        )
+
+        outgoing_transition_counts = (
+            state["outgoing_transition_counts"]
+        )
+
+
+        total_tx = max(
+            user_state["tx_count"],
+            1
+        )
+
+        merchant_count = int(
+            merchant_counts.get(
+                tx["merchant"],
+                0
+            )
+        )
+
+        merchant_affinity_score = (
+            merchant_count
+            / total_tx
+        )
+
+        device_key = (
+            f"{tx['device_id']}|"
+            f"{tx['merchant']}"
+        )
+
+        pair_count = int(
+            device_merchant_counts.get(
+                device_key,
+                0
+            )
+        )
+
+        device_merchant_affinity_score = (
+            pair_count
+            / total_tx
+        )
+
+
+        hour = str(
+            datetime.fromisoformat(
+                tx["timestamp"]
+            ).hour
+        )
+
+        hour_count = int(
+            hour_counts.get(
+                hour,
+                0
+            )
+        )
+
+        hour_preference_score = (
+            hour_count
+            / total_tx
+        )
+
+
+        previous_merchant = (
+            user_state["last_merchant"]
+        )
+
+        if previous_merchant == None:
+
+            merchant_transition_score = 0.0
+
+        else:
+            transition_key = (
+                f"{previous_merchant}|"
+                f"{tx['merchant']}"
+            )
+
+            transition_count = int(
+                transition_counts.get(
+                    transition_key,
+                    0
+                )
+            )
+
+            outgoing_count = int(
+                outgoing_transition_counts.get(
+                    previous_merchant,
+                    0
+                )
+            )
+
+            merchant_transition_score = (
+                transition_count
+                / max(outgoing_count, 1)
+            )
+
+        
+
+
         return {
+
             "transaction_count_1m":
                 user_state["tx_count_1m"],
 
@@ -196,5 +340,29 @@ class FeatureDefinitions:
             "merchant_repeat_count":
                 user_state[
                     "merchant_repeat_count"
-                ]
+                ],
+
+            "merchant_affinity_score":
+                round(
+                    merchant_affinity_score,
+                    4
+                ),
+
+            "hour_preference_score":
+                round(
+                    hour_preference_score,
+                    4
+                ),
+
+            "device_merchant_affinity_score":
+                round(
+                    device_merchant_affinity_score,
+                    4
+                ),
+
+            "merchant_transition_score":
+                round(
+                    merchant_transition_score,
+                    4
+                )
         }

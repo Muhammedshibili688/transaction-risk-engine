@@ -44,6 +44,46 @@ class OnlineFeatureStore:
     
     def country_key(self, country):
         return f"Country: {country}"
+
+    def merchant_counts_key(
+        self,
+        user_id
+    ):
+        return (
+            f"user:{user_id}:merchant_counts"
+        )
+
+    def hour_counts_key(
+        self,
+        user_id
+    ):
+        return (
+            f"user:{user_id}:hour_counts"
+        )
+
+    def device_merchant_counts_key(
+        self,
+        user_id
+    ):
+        return (
+            f"user:{user_id}:device_merchant_counts"
+        )
+
+    def transition_counts_key(
+        self,
+        user_id
+    ):
+        return (
+            f"user:{user_id}:transition_counts"
+        )
+
+    def outgoing_transition_counts_key(
+        self,
+        user_id
+    ):
+        return (
+            f"user:{user_id}:outgoing_transition_counts"
+        )
     
     # =================================================
     # Read methods
@@ -149,6 +189,7 @@ class OnlineFeatureStore:
         ts = timestamp.timestamp()
 
         return self.redis.zcount(key, ts - 300, ts)
+
     
     # =================================================
     # Write methods
@@ -171,8 +212,17 @@ class OnlineFeatureStore:
         # -----------------------------
         old_avg = state["avg_amount"]
         old_count = state["tx_count"]
+        old_sum = state["amount_sum"]
+        old_sum_sq = state["amount_sum_sq"]
 
         new_count = old_count + 1
+
+        new_sum = old_sum + amount
+
+        new_sum_sq = (
+            old_sum_sq
+            + amount * amount
+        )
 
         if old_count == 0:
             new_avg = amount
@@ -181,48 +231,7 @@ class OnlineFeatureStore:
                 (old_avg * old_count) + amount
             ) / new_count
 
-        # -----------------------------
-        # velocity counters
-        # -----------------------------
-        # def update_window(count, start_ts, seconds):
-        #     if not start_ts:
-        #         return 1, curr_dt.isoformat()
-
-        #     start_dt = datetime.fromisoformat(start_ts)
-
-        #     elapsed = (
-        #         curr_dt - start_dt
-        #     ).total_seconds()
-
-        #     if elapsed > seconds:
-        #         return 1, curr_dt.isoformat()
-
-        #     return count + 1, start_ts
-
-        # tx_count_1m, window_1m_start = update_window(
-        #     state["tx_count_1m"],
-        #     state["window_1m_start"],
-        #     60
-        # )
-
-        # tx_count_5m, window_5m_start = update_window(
-        #     state["tx_count_5m"],
-        #     state["window_5m_start"],
-        #     300
-        # )
-
-        # tx_count_1h, window_1h_start = update_window(
-        #     state["tx_count_1h"],
-        #     state["window_1h_start"],
-        #     3600
-        # )
-
-        # tx_count_24h, window_24h_start = update_window(
-        #     state["tx_count_24h"],
-        #     state["window_24h_start"],
-        #     86400
-        # )
-
+        
         # -----------------------------
         # small amount burst
         # -----------------------------
@@ -330,7 +339,11 @@ class OnlineFeatureStore:
                 "distinct_ips_24h":
                     distinct_ips_24h,
 
-                "last_merchant": tx["merchant"]
+                "last_merchant": tx["merchant"],
+
+                "amount_sum":new_sum,
+
+                "amount_sum_sq":new_sum_sq
             }
         )
 
@@ -342,6 +355,83 @@ class OnlineFeatureStore:
                 "tx_count": new_c_count
             }
         )
+        # =================================
+        # Merchant counts
+        # =================================
+
+        pipe.hincrby(
+            self.merchant_counts_key(
+                user_id
+            ),
+            tx["merchant"],
+            1
+        )
+
+        # =================================
+        # Hour counts
+        # =================================
+
+        hour = str(
+            curr_dt.hour
+        )
+
+        pipe.hincrby(
+            self.hour_counts_key(
+                user_id
+            ),
+            hour,
+            1
+        )
+
+        # =================================
+        # Device Merchnat counts
+        # =================================
+
+        device_merchant_key = (
+            f"{tx['device_id']}|"
+            f"{tx['merchant']}"
+        )
+
+        pipe.hincrby(
+            self.device_merchant_counts_key(
+                user_id
+            ),
+            device_merchant_key,
+            1
+        )
+
+        # =================================
+        # Merchnat Transition
+        # =================================
+
+        previous_merchant = (
+            state["last_merchant"]
+        )
+
+        if previous_merchant:
+
+            transition_key = (
+                f"{previous_merchant}|"
+                f"{tx['merchant']}"
+            )
+
+            # specific transition
+            pipe.hincrby(
+                self.transition_counts_key(
+                    user_id
+                ),
+                transition_key,
+                1
+            )
+
+            # total outgoing transitions
+            pipe.hincrby(
+                self.outgoing_transition_counts_key(
+                    user_id
+                ),
+                previous_merchant,
+                1
+            )
 
         pipe.execute()
 
@@ -396,6 +486,36 @@ class OnlineFeatureStore:
             ts
         )
 
+        pipe.hgetall(
+            self.merchant_counts_key(
+                user_id
+            )
+        )
+
+        pipe.hgetall(
+            self.hour_counts_key(
+                user_id
+            )
+        )
+
+        pipe.hgetall(
+            self.device_merchant_counts_key(
+                user_id
+            )
+        )
+
+        pipe.hgetall(
+            self.transition_counts_key(
+                user_id
+            )
+        )
+
+        pipe.hgetall(
+            self.outgoing_transition_counts_key(
+                user_id
+            )
+        )
+
         results = pipe.execute()
 
         user_raw = results[0]
@@ -407,6 +527,12 @@ class OnlineFeatureStore:
         tx_count_5m = results[5]
         tx_count_1h = results[6]
         tx_count_24h = results[7]
+
+        merchant_counts = results[8]
+        hour_counts = results[9]
+        device_merchant_counts = results[10]
+        transition_counts = results[11]
+        outgoing_transition_counts = results[12]
 
         if not user_raw:
             user_state = {
@@ -429,6 +555,8 @@ class OnlineFeatureStore:
                 "distinct_ips_24h": 0,
 
                 "last_merchant": None,
+                "amount_sum": 0.0,
+                "amount_sum_sq": 0.0,
             }
 
         else:
@@ -462,6 +590,20 @@ class OnlineFeatureStore:
                 ),
 
                 "last_merchant": user_raw.get("last_merchant"),
+
+                "amount_sum": float(
+                    user_raw.get(
+                        "amount_sum",
+                        0.0
+                    )
+                ),
+
+                "amount_sum_sq": float(
+                    user_raw.get(
+                        "amount_sum_sq",
+                        0.0
+                    )
+                ),
             }
 
         if not country_raw:
@@ -477,8 +619,13 @@ class OnlineFeatureStore:
 
 
         return {
-            "user": user_state,
-            "known_device": known_device,
-            "known_ip": known_ip,
-            "country": country_state
+            "user":user_state,
+            "known_device":known_device,
+            "known_ip":known_ip,
+            "country":country_state,
+            "merchant_counts":merchant_counts,
+            "hour_counts":hour_counts,
+            "device_merchant_counts":device_merchant_counts,
+            "transition_counts":transition_counts,
+            "outgoing_transition_counts":outgoing_transition_counts
         }
