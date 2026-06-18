@@ -73,7 +73,7 @@ def main(config_path, consumer_name):
 
                     except Exception as e:
                         logging.exception(
-                            f"Failed processing transaction", e
+                            f"Failed processing transaction: {e}"
                         )
     except KeyboardInterrupt:
         logging.info(
