@@ -215,6 +215,21 @@ class OnlineFeatureStore:
         old_sum = state["amount_sum"]
         old_sum_sq = state["amount_sum_sq"]
 
+        merchant_total = sum(
+            int(v)
+            for v in prior_state["merchant_counts"].values()
+        )
+
+        if merchant_total != old_count:
+            print(
+                {
+                    "type": "PRE_UPDATE_MISMATCH",
+                    "user_id": user_id,
+                    "merchant_total": merchant_total,
+                    "old_count": old_count
+                }
+            )
+
         new_count = old_count + 1
 
         new_sum = old_sum + amount
@@ -313,6 +328,15 @@ class OnlineFeatureStore:
                 velocity_key,
                 0,
                 curr_dt.timestamp() - 86400
+            )
+
+        if random.random() < 0.0001:
+            print(
+                {
+                    "user_id": user_id,
+                    "old_count": old_count,
+                    "new_count": new_count
+                }
             )
 
         # user state

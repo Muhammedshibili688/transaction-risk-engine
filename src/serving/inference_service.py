@@ -178,7 +178,7 @@ class InferenceService:
             - start_time
         ) * 1000
 
-        if random.random() < 0.01:
+        if random.random() < 0.001:
             print(
                 f"predict_ms={predict_ms:.3f}"
                 )

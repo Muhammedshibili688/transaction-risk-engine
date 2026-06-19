@@ -228,10 +228,21 @@ class FeatureDefinitions:
         )
 
 
+
+
+
         total_tx = max(
             user_state["tx_count"],
             1
         )
+
+        if user_state["tx_count"] == 0:
+            print(
+                {
+                    "type": "COLD USER",
+                    "user_id": tx["user_id"]
+                }
+            )
 
         merchant_count = int(
             merchant_counts.get(
@@ -240,10 +251,51 @@ class FeatureDefinitions:
             )
         )
 
+
+
+
+
+
+
+
+
+        if merchant_count > total_tx:
+            print(
+            {
+                "type": "MERCHANT BUG",
+                "user_id": tx["user_id"],
+                "merchant_count": merchant_count,
+                "total_tx": total_tx
+            }
+        )
+
+
+
+
+
+
+
+
+
+
+
+
         merchant_affinity_score = (
             merchant_count
             / total_tx
         )
+
+        # =========================================================
+        if merchant_affinity_score > 1:
+                print(
+                    {   
+                        "type": "MERCHANT SCORE > 1",
+                        "user_id": tx["user_id"],
+                        "merchant_count": merchant_count,
+                        "total_tx": total_tx
+                    }
+                )        
+        # =========================================================
 
         device_key = (
             f"{tx['device_id']}|"
@@ -257,10 +309,45 @@ class FeatureDefinitions:
             )
         )
 
+
+
+
+
+
+
+        if pair_count > total_tx:
+            print(
+                {
+                    "type": "DEVICE BUG",
+                    "user_id": tx["user_id"],
+                    "pair_count": pair_count,
+                    "total_tx": total_tx
+                    }
+            )
+
+ 
+
+
+
+
+
         device_merchant_affinity_score = (
             pair_count
             / total_tx
         )
+
+
+        # =======================================
+        if device_merchant_affinity_score > 1:
+            print(
+                {   
+                    "type": "DEVICE SCORE > 1",
+                    "user_id": tx["user_id"],
+                    "pair_count": pair_count,
+                    "total_tx": total_tx
+                }
+            )
+        # =========================================
 
 
         hour = str(
@@ -276,11 +363,50 @@ class FeatureDefinitions:
             )
         )
 
+
+
+
+
+
+
+
+        if hour_count > total_tx:
+            print(
+                {
+                    "type":"HOUR BUG",
+                    "user_id": tx["user_id"],
+                    "hour_count": hour_count,
+                    "total_tx": total_tx
+                }
+            )
+
+
+
+
+
+
+
+
+
+
+
+
+
         hour_preference_score = (
             hour_count
             / total_tx
         )
-
+        # ====================================================
+        if hour_preference_score > 1:
+                print(
+                    {   
+                        "type": "HOUR SCORE > 1",
+                        "user_id": tx["user_id"],
+                        "hour_count": hour_count,
+                        "total_tx": total_tx
+                    }
+                )
+        # =====================================================
 
         previous_merchant = (
             user_state["last_merchant"]
@@ -310,10 +436,46 @@ class FeatureDefinitions:
                 )
             )
 
+
+
+
+
+
+            if outgoing_count < transition_count:
+                print(
+                    {
+                        "type":"TRANSITION BUG",
+                        "user_id": tx["user_id"],
+                        "transition_count": transition_count,
+                        "outgoing_count": outgoing_count
+                    }
+                )
+
+
+
+
+
+
             merchant_transition_score = (
                 transition_count
                 / max(outgoing_count, 1)
             )
+
+            # ====================================================
+            
+
+            if merchant_transition_score > 1:
+                print(
+                    {   
+                        "type": "MERCHANT TRANSITION SCORE > 1",
+                        "user_id": tx["user_id"],
+                        "transition_count": transition_count,
+                        "outgoing_count": outgoing_count
+                    }
+                )
+            # =====================================================
+
+            
 
         
 
