@@ -1,9 +1,11 @@
+import random
 import os
 import json
 from dotenv import load_dotenv
 from redis import Redis
 from src.logger import logging
 from src.configuration.redis_connection import RedisClient
+
 from src.monitoring.prediction_logger import (
     PredictionLogger,
 )
@@ -21,7 +23,10 @@ STREAM_NAME = os.getenv("MONITORING_STREAM")
 
 GROUP_NAME = "monitoring_group"
 
-CONSUMER_NAME = "monitor1"
+CONSUMER_NAME = os.getenv(
+    "MONITOR_CONSUMER",
+    "monitor1"
+)
 
 class MonitoringConsumer:
 
@@ -54,11 +59,26 @@ class MonitoringConsumer:
         self,
         fields: dict,
     ) -> None:
-    
 
-        data = json.loads(
-            fields["data"]
-        )
+        
+
+        data = json.loads(fields["data"])
+
+        # if (
+        #     data["merchant_affinity_score"] > 0
+        #     or
+        #     data["merchant_transition_score"] > 0
+        # ):
+            # print(
+            #     {
+            #         "affinity":
+            #             data["merchant_affinity_score"],
+            #         "transition":
+            #             data["merchant_transition_score"],
+            #         "new_ip":
+            #             data["is_new_ip"]
+            #     }
+            # )
 
         self.prediction_logger.log_prediction(
             probability=
@@ -112,17 +132,15 @@ def main():
     )
 
     try:
-
         redis_client.xgroup_create(
             STREAM_NAME,
             GROUP_NAME,
             id="0",
             mkstream=True
         )
-
-        print(
-            f"Created group {GROUP_NAME}"
-        )
+    except Exception as e:
+        if "BUSYGROUP" not in str(e):
+            raise
 
     except Exception as e:
 
