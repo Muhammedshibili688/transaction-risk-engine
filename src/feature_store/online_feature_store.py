@@ -206,46 +206,6 @@ class OnlineFeatureStore:
 
         user_key = self.user_key(user_id)
         state = prior_state["user"]
-
-        # -----------------------------
-        # avg amount + tx count
-        # -----------------------------
-        old_avg = state["avg_amount"]
-        old_count = state["tx_count"]
-        old_sum = state["amount_sum"]
-        old_sum_sq = state["amount_sum_sq"]
-
-        merchant_total = sum(
-            int(v)
-            for v in prior_state["merchant_counts"].values()
-        )
-
-        if merchant_total != old_count:
-            print(
-                {
-                    "type": "PRE_UPDATE_MISMATCH",
-                    "user_id": user_id,
-                    "merchant_total": merchant_total,
-                    "old_count": old_count
-                }
-            )
-
-        new_count = old_count + 1
-
-        new_sum = old_sum + amount
-
-        new_sum_sq = (
-            old_sum_sq
-            + amount * amount
-        )
-
-        if old_count == 0:
-            new_avg = amount
-        else:
-            new_avg = (
-                (old_avg * old_count) + amount
-            ) / new_count
-
         
         # -----------------------------
         # small amount burst
@@ -285,18 +245,6 @@ class OnlineFeatureStore:
         country = tx["country"]
         country_stats = prior_state["country"]
 
-        c_count = country_stats["tx_count"]
-        c_avg = country_stats["avg_amount"]
-
-        new_c_count = c_count + 1
-
-        if c_count == 0:
-            new_c_avg = amount
-        else:
-            new_c_avg = (
-                (c_avg * c_count) + amount
-            ) / new_c_count
-
         # -----------------------------
         # persist
         # -----------------------------
@@ -330,22 +278,10 @@ class OnlineFeatureStore:
                 curr_dt.timestamp() - 86400
             )
 
-        if random.random() < 0.0001:
-            print(
-                {
-                    "user_id": user_id,
-                    "old_count": old_count,
-                    "new_count": new_count
-                }
-            )
-
         # user state
         pipe.hset(
             user_key,
             mapping={
-                "avg_amount": new_avg,
-                "tx_count": new_count,
-
                 "last_country": tx["country"],
                 "last_lat": tx["lat"],
                 "last_lon": tx["lon"],
@@ -363,20 +299,8 @@ class OnlineFeatureStore:
                 "distinct_ips_24h":
                     distinct_ips_24h,
 
-                "last_merchant": tx["merchant"],
-
-                "amount_sum":new_sum,
-
-                "amount_sum_sq":new_sum_sq
-            }
-        )
-
-        # country state
-        pipe.hset(
-            self.country_key(country),
-            mapping={
-                "avg_amount": new_c_avg,
-                "tx_count": new_c_count
+                "last_merchant":
+                    tx["merchant"]
             }
         )
         # =================================
@@ -389,6 +313,38 @@ class OnlineFeatureStore:
             ),
             tx["merchant"],
             1
+        )
+
+        pipe.hincrby(
+            user_key,
+            "tx_count",
+            1
+        )
+
+        pipe.hincrbyfloat(
+            user_key,
+            "amount_sum",
+            amount
+        )
+
+        pipe.hincrbyfloat(
+            user_key,
+            "amount_sum_sq",
+            amount * amount
+        )
+
+        country_key = self.country_key(country)
+
+        pipe.hincrby(
+            country_key,
+            "tx_count",
+            1
+        )
+
+        pipe.hincrbyfloat(
+            country_key,
+            "amount_sum",
+            amount
         )
 
         # =================================
@@ -584,9 +540,27 @@ class OnlineFeatureStore:
             }
 
         else:
+
+
+            tx_count = int(
+                    user_raw.get(
+                        "tx_count",
+                        0
+                    )
+                )
+
+            amount_sum = float(
+                    user_raw.get(
+                        "amount_sum",
+                        0.0
+                    )
+                )
+
+            avg_amount = (amount_sum/ max(tx_count, 1))
+
             user_state = {
-                "avg_amount": float(user_raw.get("avg_amount", 0)),
-                "tx_count": int(user_raw.get("tx_count", 0)),
+                "avg_amount": avg_amount,
+                "tx_count": tx_count,
                 "last_country": user_raw.get("last_country"),
                 "last_lat": float(user_raw["last_lat"]) if user_raw.get("last_lat") else None,
                 "last_lon": float(user_raw["last_lon"]) if user_raw.get("last_lon") else None,
@@ -636,9 +610,25 @@ class OnlineFeatureStore:
                 "tx_count": 0
             }
         else:
+            country_tx_count = int(
+                country_raw.get("tx_count", 0)
+            )
+
+            country_amount_sum = float(
+                country_raw.get("amount_sum", 0.0)
+            )
+
+            country_avg_amount = (
+                country_amount_sum
+                / max(country_tx_count, 1)
+            )
+
             country_state = {
-                "avg_amount": float(country_raw.get("avg_amount", 0)),
-                "tx_count": int(country_raw.get("tx_count", 0))
+                "avg_amount":
+                    country_avg_amount,
+
+                "tx_count":
+                    country_tx_count
             }
 
 

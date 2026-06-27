@@ -236,13 +236,13 @@ class FeatureDefinitions:
             1
         )
 
-        if user_state["tx_count"] == 0:
-            print(
-                {
-                    "type": "COLD USER",
-                    "user_id": tx["user_id"]
-                }
-            )
+        # if user_state["tx_count"] == 0:
+        #     print(
+        #         {
+        #             "type": "COLD USER",
+        #             "user_id": tx["user_id"]
+        #         }
+        #     )
 
         merchant_count = int(
             merchant_counts.get(
@@ -259,15 +259,15 @@ class FeatureDefinitions:
 
 
 
-        if merchant_count > total_tx:
-            print(
-            {
-                "type": "MERCHANT BUG",
-                "user_id": tx["user_id"],
-                "merchant_count": merchant_count,
-                "total_tx": total_tx
-            }
-        )
+        # if merchant_count > total_tx:
+        #     print(
+        #         {
+        #             "type": "MERCHANT BUG",
+        #             "user_id": tx["user_id"],
+        #             "merchant_count": merchant_count,
+        #             "total_tx": total_tx
+        #         }
+        #     )
 
 
 
@@ -286,15 +286,15 @@ class FeatureDefinitions:
         )
 
         # =========================================================
-        if merchant_affinity_score > 1:
-                print(
-                    {   
-                        "type": "MERCHANT SCORE > 1",
-                        "user_id": tx["user_id"],
-                        "merchant_count": merchant_count,
-                        "total_tx": total_tx
-                    }
-                )        
+        # if merchant_affinity_score > 1:
+        #         print(
+        #             {   
+        #                 "type": "MERCHANT SCORE > 1",
+        #                 "user_id": tx["user_id"],
+        #                 "merchant_count": merchant_count,
+        #                 "total_tx": total_tx
+        #             }
+        #         )        
         # =========================================================
 
         device_key = (
@@ -338,15 +338,15 @@ class FeatureDefinitions:
 
 
         # =======================================
-        if device_merchant_affinity_score > 1:
-            print(
-                {   
-                    "type": "DEVICE SCORE > 1",
-                    "user_id": tx["user_id"],
-                    "pair_count": pair_count,
-                    "total_tx": total_tx
-                }
-            )
+        # if device_merchant_affinity_score > 1:
+        #     print(
+        #         {   
+        #             "type": "DEVICE SCORE > 1",
+        #             "user_id": tx["user_id"],
+        #             "pair_count": pair_count,
+        #             "total_tx": total_tx
+        #         }
+        #     )
         # =========================================
 
 
@@ -370,15 +370,15 @@ class FeatureDefinitions:
 
 
 
-        if hour_count > total_tx:
-            print(
-                {
-                    "type":"HOUR BUG",
-                    "user_id": tx["user_id"],
-                    "hour_count": hour_count,
-                    "total_tx": total_tx
-                }
-            )
+        # if hour_count > total_tx:
+        #     print(
+        #         {
+        #             "type":"HOUR BUG",
+        #             "user_id": tx["user_id"],
+        #             "hour_count": hour_count,
+        #             "total_tx": total_tx
+        #         }
+        #     )
 
 
 
@@ -397,15 +397,15 @@ class FeatureDefinitions:
             / total_tx
         )
         # ====================================================
-        if hour_preference_score > 1:
-                print(
-                    {   
-                        "type": "HOUR SCORE > 1",
-                        "user_id": tx["user_id"],
-                        "hour_count": hour_count,
-                        "total_tx": total_tx
-                    }
-                )
+        # if hour_preference_score > 1:
+        #         print(
+        #             {   
+        #                 "type": "HOUR SCORE > 1",
+        #                 "user_id": tx["user_id"],
+        #                 "hour_count": hour_count,
+        #                 "total_tx": total_tx
+        #             }
+        #         )
         # =====================================================
 
         previous_merchant = (

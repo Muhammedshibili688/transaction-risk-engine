@@ -87,29 +87,16 @@ class InferenceService:
         #     print(
         #         {
         #             "user_id": user_id,
-        #             "probability": round(probability, 4),
-        #             "decision": decision,
-
-        #             "tx_count":
-        #                 feature_vector["transaction_count_24h"],
-
         #             "merchant_affinity":
         #                 feature_vector["merchant_affinity_score"],
-
         #             "transition":
         #                 feature_vector["merchant_transition_score"],
-
-        #             "hour":
-        #                 feature_vector["hour_preference_score"],
-
-        #             "is_new_ip":
+        #             "new_ip":
         #                 feature_vector["is_new_ip"],
-
-        #             "is_new_device":
-        #                 feature_vector["is_new_device"],
+        #             "tx_count":
+        #                 feature_vector["transaction_count_24h"]
         #         }
         #     )
-
         result = {
 
             "tx_id":
@@ -178,10 +165,10 @@ class InferenceService:
             - start_time
         ) * 1000
 
-        if random.random() < 0.001:
-            print(
-                f"predict_ms={predict_ms:.3f}"
-                )
+        # if random.random() < 0.001:
+        #     print(
+        #         f"predict_ms={predict_ms:.3f}"
+        #         )
 
         monitoring_event = {
 
@@ -233,6 +220,52 @@ class InferenceService:
             latency_ms,
             3
         )
+
+        explain_payload = {
+
+            "tx_id": tx_id,
+
+            "user_id": user_id,
+
+            "fraud_probability": probability,
+
+            "decision": decision,
+
+            "timestamp": datetime.now().isoformat(),
+
+            "features": feature_vector
+        }
+
+        if decision == "REVIEW":
+            pipe.set(
+                f"tx_features:{tx_id}",
+                json.dumps(explain_payload)
+            )
+
+            pipe.expire(
+                f"tx_features:{tx_id}",
+                86400 * 30
+            )
+
+
+        pipe.zadd(
+            f"user_transactions:{user_id}",
+            {
+                tx_id: time.time()
+            }
+        )
+        pipe.zremrangebyrank(
+            f"user_transactions:{user_id}",
+            0,
+            -502
+        )
+
+
+        if random.random() < 0.001:
+            pipe.expire(
+                f"user_transactions:{user_id}",
+                86400 * 30
+            )
 
         pipe.execute()
 
