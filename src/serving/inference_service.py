@@ -172,13 +172,25 @@ class InferenceService:
 
         monitoring_event = {
 
-            "probability":
-                probability,
+            "tx_id":
+                tx_id,
+
+            "user_id":
+                user_id,
+
+            "actual_label":
+                feature_vector["is_fraud"],
 
             "prediction":
                 int(
                     decision == "REVIEW"
                 ),
+
+            "probability":
+                probability,
+
+            "decision":
+                decision,
 
             "merchant_affinity_score":
                 feature_vector.get(
