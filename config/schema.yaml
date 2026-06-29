@@ -1,4 +1,3 @@
-# Contract for the Gold Dataset (Enriched)
 columns:
   tx_id: object
   timestamp: object
@@ -9,21 +8,30 @@ columns:
   lon: float64
   ip: object
   device_id: object
+  merchant: object
+
   is_fraud: int64
   fraud_type: object
+  campaign_id: object
+
   amount_ratio: float64
   geo_distance: float64
   geo_speed: float64
+
   impossible_travel: int64
   is_new_device: int64
   is_new_ip: int64
   device_switch_count: int64
   ip_switch_count: int64
   country_change: int64
+
   country_avg_amount: float64
   user_country_ratio: float64
-  merchant: object
+
   transaction_count_1m: int64
+  transaction_count_5m: int64
+  transaction_count_1h: int64
+  transaction_count_24h: int64
   small_amount_burst: int64
   merchant_repeat_count: int64
 

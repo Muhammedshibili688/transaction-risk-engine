@@ -10,19 +10,22 @@ class DataIngestionConfig:
     data_dir: Path = project_root / "datas"
     
     # 1. Simulator Landing Zone (The RAW-RAW data)
-    local_fresh_path: Path = data_dir / "fresh" / "transactions.jsonl"
+    local_fresh_path: Path = data_dir / "raw" / "transactions.jsonl"
     
     # 2. Consumer Landing Zone (The ENRICHED data)
     local_processed_path: Path = data_dir / "processed" / "features.jsonl"
+
+    # 3. Prediction Output (Where the scoring service writes enriched snapshots)
+    local_prediction_path: Path = data_dir / "evaluation" / "predictions.jsonl"
     
-    # 3. Training/ML Zone (Data pulled from S3 for validation/training)
+    # 4. Training/ML Zone (Data pulled from S3 for validation/training)
     training_file_path: Path = data_dir / "raw" / "train_snapshot.parquet"
     
-    # 4. S3 Keys
-    s3_raw_backup_key: str = "datas/fresh/transactions.parquet"
+    # 5. S3 Keys
+    s3_raw_backup_key: str = "datas/raw/transactions.parquet"
     s3_processed_key: str = "datas/processed/features.parquet"
 
-    # 5. Training Ingestion (Destination for S3 pull)
+    # 6. Training Ingestion (Destination for S3 pull)
     ingested_train_dir: Path = data_dir / "raw"
 
 @dataclass

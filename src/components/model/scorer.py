@@ -1,46 +1,3 @@
-# import logging
-
-
-# class FraudScorer:
-#     def __init__(self, rule_config: dict):
-#         self.weights = rule_config.get('weights', {})
-#         self.limits = rule_config.get('thresholds', {})
-
-#     def calculate_heuristic_score(self, tx: dict) -> int:
-#         score = 0
-
-#         # 1. Impossible travel
-#         if tx.get('geo_speed', 0) > self.limits.get('geo_speed_limit', 900):
-#             score += self.weights.get('impossible_travel', 0)
-
-#         # 2. Amount ratio (large spend vs user average)
-#         if tx.get('amount_ratio', 0) > self.limits.get('amount_ratio_limit', 5.0):
-#             score += self.weights.get('high_risk_merchant', 0)
-
-#         # 3. New device
-#         if tx.get('is_new_device', 0) == 1:
-#             score += self.weights.get('new_device', 0)
-
-#         # 4. Velocity burst — many transactions in last 1 min
-#         if tx.get('transaction_count_1m', 0) > 5:
-#             score += self.weights.get('velocity_burst', 0)
-
-#         # 5. Small amount burst — card testing probe pattern
-#         if tx.get('small_amount_burst', 0) > 2:
-#             score += self.weights.get('small_amount_burst', 0)
-
-#         # 6. Merchant repeat — same merchant hit repeatedly in 5 min
-#         if tx.get('merchant_repeat_count', 0) > 4:
-#             score += self.weights.get('merchant_repeat', 0)
-
-#         # 7. Card testing combo — small amount + new device together
-#         if tx.get('amount_usd', 0) < 20 and tx.get('is_new_device', 0) == 1:
-#             score += self.weights.get('card_testing_combo', 0)
-
-#         return min(score, 100)
-
-
-
 import math
 from src.logger import logging
 
@@ -64,17 +21,67 @@ class FraudScorer:
     def _behavioral_risk(self, tx: dict) -> int:
 
         score = 0
-        speed = tx.get('geo_speed', 0)
-        speed_limit = self.limits.get('geo_speed_limit', 1050)
+
+        speed = tx.get(
+            "geo_speed",
+            0
+        )
+
+        speed_limit = self.limits.get(
+            "geo_speed_limit",
+            1050
+        )
 
         if speed > speed_limit:
-            # /250 instead of /500 — more aggressive escalation
-            score += min(70, int((speed - speed_limit) / 250 * 40))
+            score += min(
+                70,
+                int(
+                    (speed - speed_limit)
+                    / 250 * 40
+                )
+            )
 
-        ratio = tx.get('amount_ratio', 0)
-        ratio_limit = self.limits.get('amount_ratio_limit', 3.0)
+        ratio = tx.get(
+            "amount_ratio",
+            0
+        )
+
+        ratio_limit = self.limits.get(
+            "amount_ratio_limit",
+            3.0
+        )
+
         if ratio > ratio_limit:
-            score += min(30, int((ratio / ratio_limit) * 10))
+            score += min(
+                30,
+                int(
+                    (ratio / ratio_limit)
+                    * 10
+                )
+            )
+
+        # -----------------------
+        # Z-SCORE SIGNAL
+        # -----------------------
+
+        z_score = tx.get(
+            "z_score",
+            0
+        )
+
+        # Account Takeover
+        if z_score > 2:
+            score += 10
+
+        if z_score > 4:
+            score += 15
+
+        # Card Testing
+        if z_score < -0.6:
+            score += 10
+
+        if z_score < -0.8:
+            score += 15
 
         return min(score, 70)
 

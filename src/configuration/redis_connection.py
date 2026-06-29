@@ -36,7 +36,7 @@ class RedisClient:
                     port=port,
                     password=password,
                     decode_responses=True,
-                    socket_timeout=5.0,
+                    socket_timeout=60.0,
                     socket_connect_timeout=5.0,
                     retry=retry_strategy,
                     retry_on_timeout=True,

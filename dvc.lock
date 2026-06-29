@@ -97,15 +97,19 @@ stages:
       hash: md5
       md5: 3360b00729c4acb2b5b7fe037a249b41
       size: 394
+    - path: reports/threshold_optimization/best_threshold.yaml
+      hash: md5
+      md5: 189d6694c8f195f737ef5edc0500d99a
+      size: 52
     - path: src/pipeline/evaluation_pipeline.py
       hash: md5
-      md5: 05689e47131ada5320d970fce9cdc22b
-      size: 3812
+      md5: 99cc03d6c05506b4c8bb5169aae9aae3
+      size: 4192
     outs:
     - path: reports/model_evaluation
       hash: md5
-      md5: d4898beaf2537ee177fbc8f255eef990.dir
-      size: 377
+      md5: 94241a106bf81d3c8198e2a359491a7c.dir
+      size: 364
       nfiles: 1
   threshold_optimization:
     cmd: python threshold_runner.py --data datas/raw/train_snapshot.parquet
