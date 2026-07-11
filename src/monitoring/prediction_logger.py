@@ -1,5 +1,5 @@
 from redis import Redis
-
+from src.configuration.redis_connection import RedisClient
 
 class PredictionLogger:
     """
@@ -81,11 +81,7 @@ class PredictionLogger:
 
 if __name__ == "__main__":
 
-    redis_client = Redis(
-        host="localhost",
-        port=6379,
-        decode_responses=True,
-    )
+    redis_client = RedisClient().client
 
     logger = PredictionLogger(
         redis_client=redis_client

@@ -1,49 +1,119 @@
-# Comments are provided throughout this file to help you get started.
-# If you need more help, visit the Docker Compose reference guide at
-# https://docs.docker.com/go/compose-spec-reference/
+version: "3.9"
 
-# Here the instructions define your application as a service called "server".
-# This service is built from the Dockerfile in the current directory.
-# You can add other services your application may depend on here, such as a
-# database or a cache. For examples, see the Awesome Compose repository:
-# https://github.com/docker/awesome-compose
 services:
-  server:
-    build:
-      context: .
+
+  redis:
+    image: redis:7
+    container_name: redis
+    restart: unless-stopped
+
     ports:
-      - 8000:8000
+      - "6379:6379"
 
-# The commented out section below is an example of how to define a PostgreSQL
-# database that your application can use. `depends_on` tells Docker Compose to
-# start the database before your application. The `db-data` volume persists the
-# database data between container restarts. The `db-password` secret is used
-# to set the database password. You must create `db/password.txt` and add
-# a password of your choosing to it before running `docker compose up`.
-#     depends_on:
-#       db:
-#         condition: service_healthy
-#   db:
-#     image: postgres
-#     restart: always
-#     user: postgres
-#     secrets:
-#       - db-password
-#     volumes:
-#       - db-data:/var/lib/postgresql/data
-#     environment:
-#       - POSTGRES_DB=example
-#       - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
-#     expose:
-#       - 5432
-#     healthcheck:
-#       test: [ "CMD", "pg_isready" ]
-#       interval: 10s
-#       timeout: 5s
-#       retries: 5
-# volumes:
-#   db-data:
-# secrets:
-#   db-password:
-#     file: db/password.txt
+  simulator:
+    build: .
+    command: python simulator.py
 
+    depends_on:
+      - redis
+
+    environment:
+      REDIS_HOST: redis
+
+  api:
+    build: .
+    command: uvicorn src.api.explainability_api:app --host 0.0.0.0 --port 8000
+
+    depends_on:
+      - redis
+
+    environment:
+      REDIS_HOST: redis
+
+    ports:
+      - "8000:8000"
+
+  prometheus-exporter:
+    build: .
+    command: python src/monitoring/prometheus_exporter.py
+
+    depends_on:
+      - redis
+
+    environment:
+      REDIS_HOST: redis
+
+    ports:
+      - "9101:9101"
+
+  scoring-consumer:
+    build: .
+
+    command:
+      - python
+      - src/consumers/scoring_consumer.py
+      - --config
+      - config/rules/baseline.yaml
+      - --consumer
+      - scoring_worker_1
+
+    depends_on:
+      - redis
+
+    environment:
+      REDIS_HOST: redis
+
+    deploy:
+      replicas: 10
+
+  monitoring-consumer:
+    build: .
+
+    command: python src/monitoring/monitoring_consumer.py
+
+    depends_on:
+      - redis
+
+    environment:
+      REDIS_HOST: redis
+
+    deploy:
+      replicas: 4
+
+  feedback-consumer:
+    build: .
+
+    command: python src/feedback/feedback_consumer.py
+
+    depends_on:
+      - redis
+
+    environment:
+      REDIS_HOST: redis
+
+    deploy:
+      replicas: 4
+
+  prometheus:
+    image: prom/prometheus
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana
+
+    depends_on:
+      - prometheus
+
+    ports:
+      - "3001:3000"
+
+    volumes:
+      - grafana-storage:/var/lib/grafana
+
+volumes:
+  grafana-storage:

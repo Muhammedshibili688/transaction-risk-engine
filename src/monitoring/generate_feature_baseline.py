@@ -1,103 +1,214 @@
-import json
-import os
+from redis import Redis
+from src.configuration.redis_connection import RedisClient
 
-import pandas as pd
+class FeatureDriftMonitor:
 
+    MONITORING_KEY = "monitoring:feature_drift"
 
-FEATURES_PATH = (
-    "datas/experiments/"
-    "features_merchant_transition_score_best_features.parquet"
-)
+    def __init__(
+        self,
+        redis_client: Redis,
+    ):
 
-OUTPUT_PATH = (
-    "reports/baselines/"
-    "feature_baseline.json"
-)
+        self.redis_client = redis_client
 
+    def update(
+        self,
+        merchant_affinity_score: float,
+        merchant_transition_score: float,
+    ) -> None:
 
-FEATURES_TO_MONITOR = [
+        pipe = self.redis_client.pipeline()
 
-    "merchant_affinity_score",
+        pipe.hincrby(
+            self.MONITORING_KEY,
+            "total_observations",
+            1,
+        )
 
-    "merchant_transition_score",
+        pipe.hincrbyfloat(
+            self.MONITORING_KEY,
+            "merchant_affinity_sum",
+            float(merchant_affinity_score),
+        )
 
-]
+        pipe.hincrbyfloat(
+            self.MONITORING_KEY,
+            "merchant_transition_sum",
+            float(merchant_transition_score),
+        )
 
+        current_affinity_min = self.redis_client.hget(
+            self.MONITORING_KEY,
+            "merchant_affinity_min",
+        )
 
-def main():
+        current_affinity_max = self.redis_client.hget(
+            self.MONITORING_KEY,
+            "merchant_affinity_max",
+        )
 
-    os.makedirs(
-        os.path.dirname(OUTPUT_PATH),
-        exist_ok=True,
-    )
+        current_transition_min = self.redis_client.hget(
+            self.MONITORING_KEY,
+            "merchant_transition_min",
+        )
 
-    df = pd.read_parquet(
-        FEATURES_PATH
-    )
+        current_transition_max = self.redis_client.hget(
+            self.MONITORING_KEY,
+            "merchant_transition_max",
+        )
 
-    baseline = {}
+        if (
+            current_affinity_min is None
+            or merchant_affinity_score
+            < float(current_affinity_min)
+        ):
+            pipe.hset(
+                self.MONITORING_KEY,
+                "merchant_affinity_min",
+                merchant_affinity_score,
+            )
 
-    for feature in FEATURES_TO_MONITOR:
+        if (
+            current_affinity_max is None
+            or merchant_affinity_score
+            > float(current_affinity_max)
+        ):
+            pipe.hset(
+                self.MONITORING_KEY,
+                "merchant_affinity_max",
+                merchant_affinity_score,
+            )
 
-        baseline[feature] = {
+        if (
+            current_transition_min is None
+            or merchant_transition_score
+            < float(current_transition_min)
+        ):
+            pipe.hset(
+                self.MONITORING_KEY,
+                "merchant_transition_min",
+                merchant_transition_score,
+            )
 
-            "mean":
+        if (
+            current_transition_max is None
+            or merchant_transition_score
+            > float(current_transition_max)
+        ):
+            pipe.hset(
+                self.MONITORING_KEY,
+                "merchant_transition_max",
+                merchant_transition_score,
+            )
+
+        pipe.execute()
+
+    def get_metrics(self) -> dict:
+
+        metrics = self.redis_client.hgetall(
+            self.MONITORING_KEY
+        )
+
+        if not metrics:
+
+            return {}
+
+        total = int(
+            metrics.get(
+                "total_observations",
+                0,
+            )
+        )
+
+        if total == 0:
+
+            return {}
+
+        affinity_sum = float(
+            metrics.get(
+                "merchant_affinity_sum",
+                0.0,
+            )
+        )
+
+        transition_sum = float(
+            metrics.get(
+                "merchant_transition_sum",
+                0.0,
+            )
+        )
+
+        return {
+
+            "total_observations":
+            total,
+
+            "merchant_affinity_mean":
             round(
-                float(df[feature].mean()),
-                6,
+                affinity_sum / total,
+                4,
             ),
 
-            "min":
-            round(
-                float(df[feature].min()),
-                6,
+            "merchant_affinity_min":
+            float(
+                metrics.get(
+                    "merchant_affinity_min",
+                    0.0,
+                )
             ),
 
-            "max":
-            round(
-                float(df[feature].max()),
-                6,
+            "merchant_affinity_max":
+            float(
+                metrics.get(
+                    "merchant_affinity_max",
+                    0.0,
+                )
             ),
 
-            "std":
+            "merchant_transition_mean":
             round(
-                float(df[feature].std()),
-                6,
+                transition_sum / total,
+                4,
             ),
 
+            "merchant_transition_min":
+            float(
+                metrics.get(
+                    "merchant_transition_min",
+                    0.0,
+                )
+            ),
+
+            "merchant_transition_max":
+            float(
+                metrics.get(
+                    "merchant_transition_max",
+                    0.0,
+                )
+            ),
         }
-
-    with open(
-        OUTPUT_PATH,
-        "w",
-    ) as f:
-
-        json.dump(
-            baseline,
-            f,
-            indent=4,
-        )
-
-    print(
-        "\nFeature baseline saved:"
-    )
-
-    print(
-        OUTPUT_PATH
-    )
-
-    print(
-        "\nBaseline Statistics\n"
-    )
-
-    print(
-        json.dumps(
-            baseline,
-            indent=4,
-        )
-    )
 
 
 if __name__ == "__main__":
 
-    main()
+    redis_client = RedisClient().client
+
+    monitor = FeatureDriftMonitor(
+        redis_client=redis_client
+    )
+
+    monitor.update(
+        merchant_affinity_score=0.42,
+        merchant_transition_score=0.33,
+    )
+
+    monitor.update(
+        merchant_affinity_score=0.87,
+        merchant_transition_score=0.65,
+    )
+
+    print(
+        monitor.get_metrics()
+    )
+

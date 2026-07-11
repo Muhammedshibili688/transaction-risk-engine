@@ -1,7 +1,6 @@
 import json
-
 from redis import Redis
-
+from src.configuration.redis_connection import RedisClient
 from src.monitoring.feature_drift_monitor import (
     FeatureDriftMonitor,
 )
@@ -154,11 +153,7 @@ class DriftDetector:
 
 if __name__ == "__main__":
 
-    redis_client = Redis(
-        host="localhost",
-        port=6379,
-        decode_responses=True,
-    )
+    redis_client = RedisClient().client
 
     detector = DriftDetector(
         redis_client=redis_client

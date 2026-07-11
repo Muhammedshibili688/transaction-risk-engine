@@ -5,16 +5,14 @@ import pandas as pd
 
 from redis import Redis
 from fastapi import FastAPI, HTTPException
-
-
-app = FastAPI()
-
-redis_client = Redis(
-    host="localhost",
-    port=6379,
-    decode_responses=True
+app = FastAPI(
+    title="Transaction Risk Investigation API",
+    description="REST API for real-time fraud investigation, SHAP explainability, analyst review queues and transaction history.",
+    version="1.0.0"
 )
 
+from src.configuration.redis_connection import RedisClient
+redis_client = RedisClient().client
 
 class ExplainabilityService:
 
@@ -76,7 +74,8 @@ explainer = ExplainabilityService()
 
 
 @app.get(
-    "/user/{user_id}"
+    "/user/{user_id}",
+    summary="Customer Transaction History"
 )
 def get_user_transactions(
     user_id: str
@@ -131,8 +130,11 @@ def get_user_transactions(
 
 
 @app.get(
-    "/transaction/{tx_id}"
+    "/transaction/{tx_id}",
+    summary="Fraud Investigation",
+    description="Retrieve transaction details with SHAP explainability."
 )
+
 def explain_transaction(
     tx_id: str
 ):
@@ -175,7 +177,10 @@ def explain_transaction(
             top_signals
     }
 
-@app.get("/review_queue")
+@app.get(
+    "/review_queue",
+    summary="Fraud Analyst Review Queue"
+)
 def review_queue(
     limit: int = 20
 ):

@@ -278,6 +278,12 @@ class InferenceService:
                 f"user_transactions:{user_id}",
                 86400 * 30
             )
+        
+        pipe.hincrby(
+            "system:metrics",
+            "transactions_processed",
+            1
+        )
 
         pipe.execute()
 

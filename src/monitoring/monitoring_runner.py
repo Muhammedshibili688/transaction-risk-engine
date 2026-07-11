@@ -1,5 +1,5 @@
+from src.configuration.redis_connection import RedisClient
 from redis import Redis
-
 from src.monitoring.prediction_monitor import (
     PredictionMonitor,
 )
@@ -31,11 +31,7 @@ def print_section(
 
 def main():
 
-    redis_client = Redis(
-        host="localhost",
-        port=6379,
-        decode_responses=True,
-    )
+    redis_client = RedisClient().client
 
     prediction_monitor = (
         PredictionMonitor(

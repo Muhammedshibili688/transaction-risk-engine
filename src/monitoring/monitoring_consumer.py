@@ -1,6 +1,8 @@
 import random
 import os
+import socket
 import json
+from redis import Redis
 from dotenv import load_dotenv
 from redis import Redis
 from src.logger import logging
@@ -19,13 +21,15 @@ from src.monitoring.latency_monitor import (
 )
 load_dotenv()
 
+
+
 STREAM_NAME = os.getenv("MONITORING_STREAM")
 
 GROUP_NAME = "monitoring_group"
 
 CONSUMER_NAME = os.getenv(
     "MONITOR_CONSUMER",
-    "monitor1"
+    socket.gethostname()
 )
 
 class MonitoringConsumer:
@@ -138,6 +142,7 @@ def main():
             id="0",
             mkstream=True
         )
+        print(STREAM_NAME)
     except Exception as e:
         if "BUSYGROUP" not in str(e):
             raise
