@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from datetime import datetime
 
-from benchmark.models.benchmark_result import BenchmarkResult
+from benchmark.benchmark_models.benchmark_result import BenchmarkResult
 
 
 class BenchmarkReport:

@@ -1,5 +1,5 @@
 """
-benchmark/models/benchmark_result.py
+benchmark/benchmark_models/benchmark_result.py
 
 Benchmark result model.
 

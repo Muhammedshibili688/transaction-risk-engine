@@ -19,7 +19,7 @@ from benchmark.collectors.redis_collector import RedisCollector
 from benchmark.collectors.docker_collector import DockerCollector
 from benchmark.collectors.system_collector import SystemCollector
 
-from benchmark.models.benchmark_result import BenchmarkResult
+from benchmark.benchmark_models.benchmark_result import BenchmarkResult
 
 from benchmark.utils.timer import BenchmarkTimer
 from benchmark.utils.calculations import (
